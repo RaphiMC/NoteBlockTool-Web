@@ -47,7 +47,7 @@ public interface RenderMessage extends Message {
         int getSampleRate();
 
         @JSProperty
-        int getChannels();
+        boolean getStereo();
 
     }
 

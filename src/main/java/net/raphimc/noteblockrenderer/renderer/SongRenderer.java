@@ -60,6 +60,7 @@ public class SongRenderer {
 
     private final Song song;
     private final Map<Instrument, AudioBuffer> sounds;
+    private final RenderMessage.AudioFileOptions audioFileOptions;
     private final RenderMessage.PlaybackOptions playbackOptions;
     private final RenderMessage.RendererOptions rendererOptions;
     private final RenderMessage.AdvancedOptions advancedOptions;
@@ -71,10 +72,11 @@ public class SongRenderer {
     public SongRenderer(final Song song, final Map<Instrument, AudioBuffer> sounds, final RenderMessage.AudioFileOptions audioFileOptions, final RenderMessage.PlaybackOptions playbackOptions, final RenderMessage.RendererOptions rendererOptions, final RenderMessage.ExtraOptions extraOptions, final RenderMessage.AdvancedOptions advancedOptions) {
         this.song = song;
         this.sounds = sounds;
+        this.audioFileOptions = audioFileOptions;
         this.playbackOptions = playbackOptions;
         this.rendererOptions = rendererOptions;
         this.advancedOptions = advancedOptions;
-        this.mixer = new AudioMixer(new AudioFormat(audioFileOptions.getSampleRate(), audioFileOptions.getChannels()));
+        this.mixer = new AudioMixer(new AudioFormat(this.audioFileOptions.getSampleRate(), this.audioFileOptions.getStereo() ? 2 : 1));
         this.resamplerSupplier = switch (this.rendererOptions.getResampler()) {
             case "point" -> PointResampler::new;
             case "linear" -> LinearResampler::new;
@@ -96,7 +98,7 @@ public class SongRenderer {
             .collect(Comparators.greatest(this.advancedOptions.getPreRenderCacheSize(), Comparator.comparingInt(Multiset.Entry<Note>::getCount)));
         for (int i = 0; i < noteGroups.size(); i++) {
             final Note note = noteGroups.get(i).getElement();
-            final AudioSource source = new InstrumentNoteAudioSource(this.sounds.get(note.getInstrument()), note, this.resamplerSupplier.get());
+            final AudioSource source = new InstrumentNoteAudioSource(this.sounds.get(note.getInstrument()), note, this.audioFileOptions.getStereo(), this.resamplerSupplier.get());
             final AudioBuffer result = new AudioBuffer(this.mixer.getFormat(), this.mixer.getFormat().millisToFrameCount(source.getRemainingMillisecondLength()));
             source.render(result);
             this.preRenderedNotes.put(note, result);
@@ -145,7 +147,7 @@ public class SongRenderer {
             if (this.preRenderedNotes.containsKey(note)) {
                 this.mixer.add(new PreRenderedNoteAudioSource(this.preRenderedNotes.get(note), note));
             } else if (this.sounds.containsKey(note.getInstrument())) {
-                this.mixer.add(new InstrumentNoteAudioSource(this.sounds.get(note.getInstrument()), note, this.resamplerSupplier.get()));
+                this.mixer.add(new InstrumentNoteAudioSource(this.sounds.get(note.getInstrument()), note, this.audioFileOptions.getStereo(), this.resamplerSupplier.get()));
             }
         }
         for (Event event : this.song.getEvents().getOrEmpty(tick)) {

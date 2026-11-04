@@ -26,15 +26,21 @@ import net.raphimc.noteblocklib.model.note.Note;
 
 public final class InstrumentNoteAudioSource extends NoteAudioSource {
 
-    public InstrumentNoteAudioSource(final AudioBuffer buffer, final Note note, final Resampler resampler) {
+    public InstrumentNoteAudioSource(final AudioBuffer buffer, final Note note, final boolean stereo, final Resampler resampler) {
         super(buffer, note, resampler);
         this.pitch().set(note.getPitch());
-        if (note.getPanning() != 0F && note.getVolume() != 1F) {
-            this.processors().add(new GainPanProcessor(note.getVolume(), note.getPanning()));
-        } else if (note.getVolume() != 1F) {
-            this.processors().add(new GainProcessor(note.getVolume()));
-        } else if (note.getPanning() != 0F) {
-            this.processors().add(new PanProcessor(note.getPanning()));
+        if (stereo) {
+            if (note.getPanning() != 0F && note.getVolume() != 1F) {
+                this.processors().add(new GainPanProcessor(note.getVolume(), note.getPanning()));
+            } else if (note.getVolume() != 1F) {
+                this.processors().add(new GainProcessor(note.getVolume()));
+            } else if (note.getPanning() != 0F) {
+                this.processors().add(new PanProcessor(note.getPanning()));
+            }
+        } else {
+            if (note.getVolume() != 1F) {
+                this.processors().add(new GainProcessor(note.getVolume()));
+            }
         }
     }
 

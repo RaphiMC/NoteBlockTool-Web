@@ -26,7 +26,7 @@ export interface RenderMessage extends Message {
 export interface AudioFileOptions {
     format: string;
     sampleRate: number;
-    channels: number;
+    stereo: boolean;
 }
 
 export type AudioFormat = RenderMessage["audioFileOptions"]["format"];

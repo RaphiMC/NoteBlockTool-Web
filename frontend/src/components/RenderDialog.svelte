@@ -8,7 +8,7 @@
     interface Settings {
         format: AudioFormat;
         sampleRate: number;
-        channels: number;
+        stereo: boolean;
         wavEncoding: WavEncoding;
         flacBitsPerSample: number;
         flacCompressionLevel: number;
@@ -30,7 +30,7 @@
         return {
             format: "mp3",
             sampleRate: 48000,
-            channels: 2,
+            stereo: true,
             wavEncoding: "s16le",
             flacBitsPerSample: 16,
             flacCompressionLevel: 6,
@@ -59,7 +59,7 @@
 
     function submit(event: SubmitEvent): void {
         event.preventDefault();
-        const base = {sampleRate: settings.sampleRate, channels: settings.channels};
+        const base = {sampleRate: settings.sampleRate, stereo: settings.stereo};
         let audioFileOptions: RenderMessage["audioFileOptions"];
         switch (settings.format) {
             case "wav":
@@ -139,10 +139,10 @@
                                     <input class="input w-full" id="render-sample-rate" type="number" min="8000" max="192000" step="1" bind:value={settings.sampleRate} required />
                                 </div>
                                 <div class="fieldset">
-                                    <label class="label" for="render-channels">Channels</label>
-                                    <select class="select w-full" id="render-channels" bind:value={settings.channels}>
-                                        <option value={1}>Mono</option>
-                                        <option value={2}>Stereo</option>
+                                    <label class="label" for="render-stereo">Channels</label>
+                                    <select class="select w-full" id="render-stereo" bind:value={settings.stereo}>
+                                        <option value={false}>Mono</option>
+                                        <option value={true}>Stereo</option>
                                     </select>
                                 </div>
                             </div>
