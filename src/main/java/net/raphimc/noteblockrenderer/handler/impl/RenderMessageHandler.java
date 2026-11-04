@@ -17,6 +17,9 @@
  */
 package net.raphimc.noteblockrenderer.handler.impl;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import net.raphimc.audiomixer.io.AudioOutputStream;
 import net.raphimc.audiomixer.io.flac.FlacAudioOutputStream;
 import net.raphimc.audiomixer.io.mp3.Mp3AudioOutputStream;
@@ -41,24 +44,20 @@ import org.concentus.OpusSignal;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 
 public class RenderMessageHandler extends MessageHandler<RenderMessage> {
 
     @Override
     public void handleMessage(final RenderMessage message) throws IOException {
-        final long startTime = System.nanoTime();
+        final Stopwatch stopwatch = Stopwatch.createStarted();
         final SoundLoader soundLoader = NoteBlockRenderer.instance().getSoundLoader();
         final Song song = NoteBlockRenderer.instance().getSong();
 
-        final Set<Instrument> instruments = new HashSet<>();
-        instruments.addAll(SongUtil.getUsedVanillaInstruments(song));
-        instruments.addAll(SongUtil.getUsedNbsCustomInstruments(song));
-        for (Instrument instrument : instruments) {
+        for (Instrument instrument : Sets.union(SongUtil.getUsedVanillaInstruments(song), SongUtil.getUsedNbsCustomInstruments(song))) {
             final String displayName = StringUtil.getInstrumentDisplayName(instrument);
             this.postStatusMessage("Loading sound sample for '" + displayName + "'");
             try {
@@ -70,9 +69,13 @@ public class RenderMessageHandler extends MessageHandler<RenderMessage> {
             }
         }
 
-        final SongRenderer renderer = new SongRenderer(song, soundLoader.getSounds(), message.getAudioFileOptions(), message.getPlaybackOptions(), message.getRendererOptions());
+        final SongRenderer renderer = new SongRenderer(song, soundLoader.getSounds(), message.getAudioFileOptions(), message.getPlaybackOptions(), message.getRendererOptions(), message.getExtraOptions(), message.getAdvancedOptions());
         this.postStatusMessage("Pre rendering most used notes");
-        renderer.preRenderMostUsedNotes();
+        renderer.preRenderMostUsedNotes(progress -> {
+            final RenderProgressMessage renderProgressMessage = RenderProgressMessage.create();
+            renderProgressMessage.setProgress(progress);
+            this.postMessage(renderProgressMessage);
+        });
         this.postStatusMessage("Rendering song");
         final AudioBuffer buffer = renderer.render(progress -> {
             final RenderProgressMessage renderProgressMessage = RenderProgressMessage.create();
@@ -103,18 +106,7 @@ public class RenderMessageHandler extends MessageHandler<RenderMessage> {
                 renderFinishedMessage.setMimeType("audio/flac");
                 final RenderMessage.FlacAudioFileOptions flacAudioFileOptions = (RenderMessage.FlacAudioFileOptions) message.getAudioFileOptions();
                 final FlacAudioOutputStream.Encoding encoding = new FlacAudioOutputStream.Encoding(flacAudioFileOptions.getBitsPerSample(), flacAudioFileOptions.getCompressionLevel());
-                final Map<String, List<String>> tags = new LinkedHashMap<>();
-                if (song.getTitle() != null) {
-                    tags.put("TITLE", List.of(song.getTitle()));
-                }
-                if (song.getAuthor() != null) {
-                    tags.put("ARTIST", List.of(song.getAuthor()));
-                }
-                if (song.getDescription() != null) {
-                    tags.put("DESCRIPTION", List.of(song.getDescription()));
-                }
-                tags.put("Renderer", List.of("NoteBlockRenderer"));
-                yield new FlacAudioOutputStream(new SeekableBufferedOutputStream(output), buffer.format(), encoding, tags);
+                yield new FlacAudioOutputStream(new SeekableBufferedOutputStream(output), buffer.format(), encoding, getVorbisAudioTags(song));
             }
             case "mp3" -> {
                 renderFinishedMessage.setFileName(song.getTitleOrFileName() + ".mp3");
@@ -143,28 +135,34 @@ public class RenderMessageHandler extends MessageHandler<RenderMessage> {
                     case "vbr" -> OggOpusAudioOutputStream.Encoding.vbr(oggOpusAudioFileOptions.getBitRate());
                     default -> throw new UnsupportedOperationException("Unsupported encoding: " + oggOpusAudioFileOptions.getEncoding());
                 };
-                final Map<String, List<String>> tags = new LinkedHashMap<>();
-                if (song.getTitle() != null) {
-                    tags.put("TITLE", List.of(song.getTitle()));
-                }
-                if (song.getAuthor() != null) {
-                    tags.put("ARTIST", List.of(song.getAuthor()));
-                }
-                if (song.getDescription() != null) {
-                    tags.put("DESCRIPTION", List.of(song.getDescription()));
-                }
-                tags.put("Renderer", List.of("NoteBlockRenderer"));
-                yield OggOpusAudioOutputStream.createCompatible(new BufferedOutputStream(output), buffer.format(), encoding, OpusSignal.OPUS_SIGNAL_MUSIC, tags);
+                yield OggOpusAudioOutputStream.createCompatible(new BufferedOutputStream(output), buffer.format(), encoding, OpusSignal.OPUS_SIGNAL_MUSIC, getVorbisAudioTags(song));
             }
             default -> throw new UnsupportedOperationException("Unsupported format: " + message.getAudioFileOptions().getFormat());
         }) {
-            audioOutputStream.write(buffer.samples());
+            final int samplesPerBatch = buffer.format().millisToSampleCount(100F);
+            for (int i = 0; i < buffer.sampleCount(); i += samplesPerBatch) {
+                final int batchSize = Math.min(samplesPerBatch, buffer.sampleCount() - i);
+                audioOutputStream.write(buffer.samples(), i, batchSize);
+                final RenderProgressMessage renderProgressMessage = RenderProgressMessage.create();
+                renderProgressMessage.setProgress(((float) (i + batchSize) / buffer.sampleCount()) * 100F);
+                this.postMessage(renderProgressMessage);
+            }
         }
-        renderFinishedMessage.setData(output.toByteArray());
+        final byte[] audioBytes = output.toByteArray();
+        renderFinishedMessage.setData(audioBytes);
+        renderFinishedMessage.setFileSize(StringUtil.formatByteCount(audioBytes.length));
         this.postMessage(renderFinishedMessage);
 
-        final long durationMillis = (System.nanoTime() - startTime) / 1_000_000L;
-        this.postStatusMessage("Rendering finished in " + StringUtil.formatDuration(durationMillis));
+        this.postStatusMessage("Rendering finished in " + stopwatch);
+    }
+
+    private static Map<String, List<String>> getVorbisAudioTags(final Song song) {
+        final Map<String, String> tags = new LinkedHashMap<>();
+        tags.put("TITLE", song.getTitle());
+        tags.put("ARTIST", song.getAuthor());
+        tags.put("DESCRIPTION", song.getDescription());
+        tags.put("Renderer", "NoteBlockRenderer");
+        return Maps.transformValues(Maps.filterValues(tags, Objects::nonNull), List::of);
     }
 
 }

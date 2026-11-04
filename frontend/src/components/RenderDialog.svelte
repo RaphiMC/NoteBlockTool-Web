@@ -2,7 +2,7 @@
     import X from "@lucide/svelte/icons/x";
     import StatusLine from "./StatusLine.svelte";
     import {renderSong, state as appState} from "../lib/app.svelte";
-    import {formatBytes, formatProgress} from "../lib/format";
+    import {formatProgress} from "../lib/format";
     import type {AudioFormat, BitRateEncoding, Limiter, RenderMessage, Resampler, WavEncoding} from "../lib/messages";
 
     interface Settings {
@@ -21,7 +21,9 @@
         timingJitter: boolean;
         resampler: Resampler;
         limiter: Limiter;
-        maxSounds: number;
+        includeGroups: string;
+        maxSimultaneousSoundCount: number;
+        preRenderCacheSize: number;
     }
 
     function defaultSettings(): Settings {
@@ -41,7 +43,9 @@
             timingJitter: true,
             resampler: "linear",
             limiter: "windowed",
-            maxSounds: 16384,
+            includeGroups: "",
+            maxSimultaneousSoundCount: 32767,
+            preRenderCacheSize: 2000,
         };
     }
 
@@ -79,7 +83,9 @@
             type: "render",
             audioFileOptions,
             playbackOptions: {volume: settings.volume, timingJitter: settings.timingJitter},
-            rendererOptions: {resampler: settings.resampler, limiter: settings.limiter, maxSounds: settings.maxSounds},
+            rendererOptions: {resampler: settings.resampler, limiter: settings.limiter},
+            extraOptions: {includeGroups: settings.includeGroups},
+            advancedOptions: {maxSimultaneousSoundCount: settings.maxSimultaneousSoundCount, preRenderCacheSize: settings.preRenderCacheSize},
         });
     }
 </script>
@@ -226,14 +232,13 @@
                         </fieldset>
                         <fieldset class="fieldset">
                             <legend class="fieldset-legend">Rendering</legend>
-                            <div class="grid gap-4 sm:grid-cols-3">
+                            <div class="form-grid">
                                 <div class="fieldset">
                                     <label class="label" for="render-resampler">Resampler</label>
                                     <select class="select w-full" id="render-resampler" bind:value={settings.resampler}>
                                         <option value="point">Point</option>
                                         <option value="linear">Linear</option>
                                         <option value="cubic">Cubic</option>
-                                        <option value="sinc">Sinc (Blackman)</option>
                                     </select>
                                 </div>
                                 <div class="fieldset">
@@ -244,9 +249,26 @@
                                         <option value="none">None</option>
                                     </select>
                                 </div>
+                            </div>
+                        </fieldset>
+                        <fieldset class="fieldset">
+                            <legend class="fieldset-legend">Extra options</legend>
+                            <div class="fieldset">
+                                <label class="label" for="render-include-groups">Include layers</label>
+                                <input class="input w-full" id="render-include-groups" type="text" placeholder="All layers" bind:value={settings.includeGroups} />
+                                <p class="text-base-content/60">Enter layer numbers or ranges separated by commas, for example 1, 3-5. Leave empty to include all layers.</p>
+                            </div>
+                        </fieldset>
+                        <fieldset class="fieldset">
+                            <legend class="fieldset-legend">Advanced options</legend>
+                            <div class="form-grid">
                                 <div class="fieldset">
-                                    <label class="label" for="render-max-sounds">Maximum simultaneous sounds</label>
-                                    <input class="input w-full" id="render-max-sounds" type="number" min="64" max="131070" step="1" bind:value={settings.maxSounds} required />
+                                    <label class="label" for="render-max-simultaneous-sound-count">Maximum simultaneous sounds</label>
+                                    <input class="input w-full" id="render-max-simultaneous-sound-count" type="number" min="1" step="1" bind:value={settings.maxSimultaneousSoundCount} required />
+                                </div>
+                                <div class="fieldset">
+                                    <label class="label" for="render-pre-render-cache-size">Pre-render cache size</label>
+                                    <input class="input w-full" id="render-pre-render-cache-size" type="number" min="0" step="1" bind:value={settings.preRenderCacheSize} required />
                                 </div>
                             </div>
                         </fieldset>
@@ -265,7 +287,7 @@
                                 <p class="flex items-center gap-2 text-base-content/60">
                                     <span class="truncate" title={appState.result.fileName}>{appState.result.fileName}</span>
                                     <span class="text-base-content/30">·</span>
-                                    <span class="whitespace-nowrap">{formatBytes(appState.result.size)}</span>
+                                    <span class="whitespace-nowrap">{appState.result.fileSize}</span>
                                 </p>
                             </div>
                             <a class="btn btn-success" href={appState.result.url} download={appState.result.fileName}>Download</a>

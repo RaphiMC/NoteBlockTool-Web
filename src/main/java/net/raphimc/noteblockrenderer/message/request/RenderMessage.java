@@ -32,6 +32,12 @@ public interface RenderMessage extends Message {
     @JSProperty
     RendererOptions getRendererOptions();
 
+    @JSProperty
+    ExtraOptions getExtraOptions();
+
+    @JSProperty
+    AdvancedOptions getAdvancedOptions();
+
     interface AudioFileOptions extends JSObject {
 
         @JSProperty
@@ -103,8 +109,22 @@ public interface RenderMessage extends Message {
         @JSProperty
         String getLimiter();
 
+    }
+
+    interface ExtraOptions extends JSObject {
+
         @JSProperty
-        int getMaxSounds();
+        String getIncludeGroups();
+
+    }
+
+    interface AdvancedOptions extends JSObject {
+
+        @JSProperty
+        int getMaxSimultaneousSoundCount();
+
+        @JSProperty
+        int getPreRenderCacheSize();
 
     }
 

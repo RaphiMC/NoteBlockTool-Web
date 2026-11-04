@@ -17,6 +17,7 @@
  */
 package net.raphimc.noteblockrenderer.handler.impl;
 
+import com.google.common.base.Stopwatch;
 import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
 import net.raphimc.noteblocklib.format.nbs.model.NbsSong;
@@ -37,7 +38,7 @@ public class LoadFileMessageHandler extends MessageHandler<LoadFileMessage> {
 
     @Override
     public void handleMessage(final LoadFileMessage message) throws Exception {
-        final long startTime = System.nanoTime();
+        final Stopwatch stopwatch = Stopwatch.createStarted();
 
         this.postStatusMessage("Reading file");
         final byte[] bytes = new Int8Array(JsNative.FileReaderSync_readAsArrayBuffer(message.getFile())).copyToJavaArray();
@@ -49,6 +50,8 @@ public class LoadFileMessageHandler extends MessageHandler<LoadFileMessage> {
 
         this.postStatusMessage("Building song metadata");
         final SongLoadedMessage songLoadedMessage = SongLoadedMessage.create();
+        songLoadedMessage.setFileName(song.getFileName());
+        songLoadedMessage.setFileSize(StringUtil.formatByteCount(bytes.length));
         songLoadedMessage.setTitle(song.getTitleOrFileName());
         songLoadedMessage.setAuthor(song.getAuthor());
         songLoadedMessage.setOriginalAuthor(song.getOriginalAuthor());
@@ -62,8 +65,7 @@ public class LoadFileMessageHandler extends MessageHandler<LoadFileMessage> {
         }
         this.postMessage(songLoadedMessage);
 
-        final long durationMillis = (System.nanoTime() - startTime) / 1_000_000L;
-        this.postStatusMessage("Loaded " + message.getFile().getName() + " in " + StringUtil.formatDuration(durationMillis));
+        this.postStatusMessage("Loaded " + message.getFile().getName() + " in " + stopwatch);
     }
 
 }

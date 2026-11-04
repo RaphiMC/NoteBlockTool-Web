@@ -17,6 +17,10 @@
  */
 package net.raphimc.noteblockrenderer.renderer;
 
+import com.google.common.collect.Comparators;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.RangeSet;
 import net.raphimc.audiomixer.AudioMixer;
 import net.raphimc.audiomixer.automation.finite.ramp.impl.LinearRampAutomation;
 import net.raphimc.audiomixer.processor.dynamics.GainProcessor;
@@ -26,7 +30,7 @@ import net.raphimc.audiomixer.resampler.impl.BlackmanSincResampler;
 import net.raphimc.audiomixer.resampler.impl.CubicResampler;
 import net.raphimc.audiomixer.resampler.impl.LinearResampler;
 import net.raphimc.audiomixer.resampler.impl.PointResampler;
-import net.raphimc.audiomixer.source.audio.impl.BufferedAudioSource;
+import net.raphimc.audiomixer.source.audio.AudioSource;
 import net.raphimc.audiomixer.util.AudioFormat;
 import net.raphimc.audiomixer.util.buffer.AudioBuffer;
 import net.raphimc.audiomixer.util.buffer.AudioBufferBuilder;
@@ -41,12 +45,14 @@ import net.raphimc.noteblockrenderer.renderer.source.InstrumentNoteAudioSource;
 import net.raphimc.noteblockrenderer.renderer.source.NoteAudioSource;
 import net.raphimc.noteblockrenderer.renderer.source.PreRenderedNoteAudioSource;
 import net.raphimc.noteblockrenderer.util.Logger;
+import net.raphimc.noteblockrenderer.util.StringUtil;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -56,15 +62,18 @@ public class SongRenderer {
     private final Map<Instrument, AudioBuffer> sounds;
     private final RenderMessage.PlaybackOptions playbackOptions;
     private final RenderMessage.RendererOptions rendererOptions;
+    private final RenderMessage.AdvancedOptions advancedOptions;
     private final AudioMixer mixer;
     private final Supplier<Resampler> resamplerSupplier;
+    private final RangeSet<Integer> includeGroups;
     private final Map<Note, AudioBuffer> preRenderedNotes = new HashMap<>();
 
-    public SongRenderer(final Song song, final Map<Instrument, AudioBuffer> sounds, final RenderMessage.AudioFileOptions audioFileOptions, final RenderMessage.PlaybackOptions playbackOptions, final RenderMessage.RendererOptions rendererOptions) {
+    public SongRenderer(final Song song, final Map<Instrument, AudioBuffer> sounds, final RenderMessage.AudioFileOptions audioFileOptions, final RenderMessage.PlaybackOptions playbackOptions, final RenderMessage.RendererOptions rendererOptions, final RenderMessage.ExtraOptions extraOptions, final RenderMessage.AdvancedOptions advancedOptions) {
         this.song = song;
         this.sounds = sounds;
         this.playbackOptions = playbackOptions;
         this.rendererOptions = rendererOptions;
+        this.advancedOptions = advancedOptions;
         this.mixer = new AudioMixer(new AudioFormat(audioFileOptions.getSampleRate(), audioFileOptions.getChannels()));
         this.resamplerSupplier = switch (this.rendererOptions.getResampler()) {
             case "point" -> PointResampler::new;
@@ -73,27 +82,29 @@ public class SongRenderer {
             case "sinc" -> BlackmanSincResampler::new;
             default -> throw new UnsupportedOperationException("Unsupported resampler: " + this.rendererOptions.getResampler());
         };
+        this.includeGroups = StringUtil.parseRange(extraOptions.getIncludeGroups(), true);
     }
 
-    public void preRenderMostUsedNotes() {
-        final Map<Note, Integer> noteGroups = this.song.getNotes().getTicks().stream()
+    public void preRenderMostUsedNotes(final FloatConsumer progressConsumer) {
+        final List<Multiset.Entry<Note>> noteGroups = this.song.getNotes().getTicks().stream()
             .map(tick -> this.song.getNotes().get(tick))
             .flatMap(Collection::stream)
+            .filter(note -> this.includeGroups.contains(note.getGroupId() + 1))
             .filter(note -> this.sounds.containsKey(note.getInstrument()))
-            .collect(Collectors.groupingBy(Function.identity(), Collectors.summingInt(_ -> 1))).entrySet().stream()
-            .filter(entry -> entry.getValue() > 1)
-            .sorted((Map.Entry.<Note, Integer>comparingByValue().reversed()))
-            .limit(1000)
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        for (Note note : noteGroups.keySet()) {
-            final BufferedAudioSource source = new InstrumentNoteAudioSource(this.sounds.get(note.getInstrument()), note, this.resamplerSupplier.get());
+            .collect(Collectors.toCollection(HashMultiset::create)).entrySet().stream()
+            .filter(entry -> entry.getCount() > 1)
+            .collect(Comparators.greatest(this.advancedOptions.getPreRenderCacheSize(), Comparator.comparingInt(Multiset.Entry<Note>::getCount)));
+        for (int i = 0; i < noteGroups.size(); i++) {
+            final Note note = noteGroups.get(i).getElement();
+            final AudioSource source = new InstrumentNoteAudioSource(this.sounds.get(note.getInstrument()), note, this.resamplerSupplier.get());
             final AudioBuffer result = new AudioBuffer(this.mixer.getFormat(), this.mixer.getFormat().millisToFrameCount(source.getRemainingMillisecondLength()));
             source.render(result);
             this.preRenderedNotes.put(note, result);
+            progressConsumer.accept(((i + 1F) / noteGroups.size()) * 100F);
         }
-        final float preRenderedPercentage = ((float) noteGroups.values().stream().mapToInt(Integer::intValue).sum() / this.song.getNotes().getNoteCount() * 100F);
-        final float usedMemory = this.preRenderedNotes.values().stream().mapToInt(buffer -> buffer.sampleCount() * Float.BYTES).sum() / (1024F * 1024F);
-        Logger.info("Finished pre rendering most used notes, covering " + String.format("%.2f", preRenderedPercentage) + "% of all notes, using " + String.format("%.2f", usedMemory) + " MiB of memory");
+        final float preRenderedPercentage = ((float) noteGroups.stream().mapToInt(Multiset.Entry::getCount).sum() / this.song.getNotes().getNoteCount() * 100F);
+        final long usedMemory = this.preRenderedNotes.values().stream().mapToLong(buffer -> (long) buffer.sampleCount() * Float.BYTES).sum();
+        Logger.info("Finished pre rendering most used notes, covering " + String.format("%.2f", preRenderedPercentage) + "% of all notes, using " + StringUtil.formatByteCount(usedMemory) + " of memory");
     }
 
     public AudioBuffer render(final FloatConsumer progressConsumer) {
@@ -102,7 +113,7 @@ public class SongRenderer {
         for (int tick = 0; tick <= this.song.getNotes().getLastTick(); tick++) {
             this.executeTick(tick);
             bufferBuilder.append(this.renderTick(tick));
-            progressConsumer.accept((tick / (float) this.song.getNotes().getLastTick()) * 100F);
+            progressConsumer.accept(((tick + 1F) / this.song.getNotes().getLengthInTicks()) * 100F);
         }
         while (!this.mixer.isEmpty()) {
             bufferBuilder.append(this.mixer.renderMillis(10F));
@@ -128,6 +139,9 @@ public class SongRenderer {
 
     private void executeTick(final int tick) {
         for (Note note : this.song.getNotes().getOrEmpty(tick)) {
+            if (!this.includeGroups.contains(note.getGroupId() + 1)) {
+                continue;
+            }
             if (this.preRenderedNotes.containsKey(note)) {
                 this.mixer.add(new PreRenderedNoteAudioSource(this.preRenderedNotes.get(note), note));
             } else if (this.sounds.containsKey(note.getInstrument())) {
@@ -150,7 +164,7 @@ public class SongRenderer {
     }
 
     private AudioBuffer renderTick(final int tick) {
-        this.mixer.limitSourceCount(this.rendererOptions.getMaxSounds());
+        this.mixer.limitSourceCount(this.advancedOptions.getMaxSimultaneousSoundCount());
         float millis = 1000F / this.song.getTempoEvents().getEffectiveTempo(tick);
         if (this.playbackOptions.getTimingJitter()) {
             millis += ThreadLocalRandom.current().nextFloat(-1F, 1F);

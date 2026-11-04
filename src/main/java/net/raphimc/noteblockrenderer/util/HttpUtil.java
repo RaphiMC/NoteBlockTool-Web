@@ -17,6 +17,7 @@
  */
 package net.raphimc.noteblockrenderer.util;
 
+import com.google.common.base.Joiner;
 import org.teavm.jso.JSBody;
 
 import java.net.URLEncoder;
@@ -40,14 +41,7 @@ public final class HttpUtil {
         if (header != null) {
             queryParams.put("reqHeaders", URLEncoder.encode(header.getKey() + ':' + header.getValue(), StandardCharsets.UTF_8));
         }
-        final StringBuilder queryString = new StringBuilder();
-        for (Map.Entry<String, String> entry : queryParams.entrySet()) {
-            if (!queryString.isEmpty()) {
-                queryString.append('&');
-            }
-            queryString.append(entry.getKey()).append('=').append(entry.getValue());
-        }
-        return "https://api.corsproxy.dev/proxy?" + queryString;
+        return "https://api.corsproxy.dev/proxy?" + Joiner.on('&').withKeyValueSeparator('=').join(queryParams);
     }
 
     @JSBody(script = "return __CORS_PROXY_API_KEY__;")

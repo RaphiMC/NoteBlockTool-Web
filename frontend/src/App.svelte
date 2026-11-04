@@ -59,7 +59,6 @@
             <h2 class="card-title" id="loading-title" tabindex="-1" {@attach element => element.focus({preventScroll: true})}>
                 {appState.phase === "starting" ? "Loading worker..." : "Loading song"}
             </h2>
-            {#if appState.source}<p class="max-w-full wrap-anywhere">{appState.source.name}</p>{/if}
             <p class="min-h-5 text-base-content/60">{appState.status.message}</p>
         </section>
     {:else if appState.phase === "failed"}
@@ -69,13 +68,13 @@
             <p class="max-w-lg wrap-anywhere whitespace-pre-wrap text-error">{appState.error}</p>
             <button class="btn btn-primary" type="button" onclick={() => location.reload()} {@attach element => element.focus({preventScroll: true})}>Reload page</button>
         </section>
-    {:else if appState.song && appState.source}
-        <SongDetails metadata={appState.song} source={appState.source} />
+    {:else if appState.song}
+        <SongDetails metadata={appState.song} />
     {/if}
 
     {#if appState.workerState === "ready"}<CustomSounds />{/if}
 
-    {#if appState.song && appState.source}
+    {#if appState.song}
         <aside class="panel card mt-4">
             <div class="card-body sm:flex-row sm:items-center">
                 <div class="flex flex-1 items-center gap-4">

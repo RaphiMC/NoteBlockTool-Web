@@ -17,6 +17,7 @@
  */
 package net.raphimc.noteblockrenderer.handler.impl;
 
+import com.google.common.base.Stopwatch;
 import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
@@ -47,7 +48,7 @@ public class LoadNbwMessageHandler extends MessageHandler<LoadNbwMessage> {
 
     @Override
     public void handleMessage(final LoadNbwMessage message) throws Exception {
-        final long startTime = System.nanoTime();
+        final Stopwatch stopwatch = Stopwatch.createStarted();
 
         this.postStatusMessage("Fetching download url");
         final XMLHttpRequest openRequest = new XMLHttpRequest();
@@ -78,12 +79,13 @@ public class LoadNbwMessageHandler extends MessageHandler<LoadNbwMessage> {
                 files.put(entry.getName(), zipInputStream.readAllBytes());
             }
         }
-        if (!files.containsKey("song.nbs")) {
+        final byte[] songBytes = files.get("song.nbs");
+        if (songBytes == null) {
             throw new IOException("Song archive does not contain song.nbs");
         }
 
         this.postStatusMessage("Parsing song");
-        final Song song = NoteBlockLib.readSong(files.get("song.nbs"), SongFormat.NBS, message.getId());
+        final Song song = NoteBlockLib.readSong(songBytes, SongFormat.NBS, "NoteBlockWorld Song #" + message.getId());
         song.getNotes().removeSilentNotes();
         NoteBlockRenderer.instance().setSong(song);
 
@@ -97,6 +99,8 @@ public class LoadNbwMessageHandler extends MessageHandler<LoadNbwMessage> {
 
         this.postStatusMessage("Building song metadata");
         final SongLoadedMessage songLoadedMessage = SongLoadedMessage.create();
+        songLoadedMessage.setFileName(song.getFileName());
+        songLoadedMessage.setFileSize(StringUtil.formatByteCount(songBytes.length));
         songLoadedMessage.setTitle(song.getTitleOrFileName());
         songLoadedMessage.setAuthor(song.getAuthor());
         songLoadedMessage.setOriginalAuthor(song.getOriginalAuthor());
@@ -110,8 +114,7 @@ public class LoadNbwMessageHandler extends MessageHandler<LoadNbwMessage> {
         }
         this.postMessage(songLoadedMessage);
 
-        final long durationMillis = (System.nanoTime() - startTime) / 1_000_000L;
-        this.postStatusMessage("Loaded NoteBlockWorld song " + message.getId() + " in " + StringUtil.formatDuration(durationMillis));
+        this.postStatusMessage("Loaded NoteBlockWorld song " + message.getId() + " in " + stopwatch);
     }
 
 }

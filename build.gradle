@@ -46,7 +46,7 @@ repositories {
 dependencies {
     teavmCompileOnly "org.teavm:teavm-core:0.17.0-dev-2"
 
-    implementation "org.apache.commons:commons-lang3:3.21.0"
+    implementation "com.google.guava:guava:33.7.2-jre"
     implementation "net.raphimc:NoteBlockLib:3.4.1-20261031.120032-2"
     implementation "net.raphimc:audio-mixer:3.1.0"
     implementation "org.jcraft:jorbis:0.0.17"

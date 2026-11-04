@@ -31,6 +31,12 @@ public interface SongLoadedMessage extends Message {
     }
 
     @JSProperty
+    void setFileName(final String fileName);
+
+    @JSProperty
+    void setFileSize(final String fileSize);
+
+    @JSProperty
     void setTitle(final String title);
 
     @JSProperty

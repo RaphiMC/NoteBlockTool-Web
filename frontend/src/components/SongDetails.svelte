@@ -5,11 +5,11 @@
     import Layers from "@lucide/svelte/icons/layers";
     import Metronome from "@lucide/svelte/icons/metronome";
     import X from "@lucide/svelte/icons/x";
-    import {type SongSource, state, unloadSong} from "../lib/app.svelte";
-    import {formatBytes, formatNumber} from "../lib/format";
+    import {state, unloadSong} from "../lib/app.svelte";
+    import {formatNumber} from "../lib/format";
     import type {SongLoadedMessage} from "../lib/messages";
 
-    let {metadata, source}: {metadata: SongLoadedMessage; source: SongSource} = $props();
+    let {metadata}: {metadata: SongLoadedMessage} = $props();
     const hasCredits = $derived(Boolean(metadata.author || metadata.originalAuthor));
     const hasDescription = $derived(Boolean(metadata.description));
 </script>
@@ -32,9 +32,9 @@
                 <p class="eyebrow">LOADED SONG</p>
                 <h2 class="card-title wrap-anywhere">{metadata.title}</h2>
                 <p class="flex flex-wrap items-center gap-2 text-base-content/60">
-                    <span class="truncate" title={source.name}>{source.name}</span>
-                    {#if source.size != null}<span>·</span>
-                        <span class="whitespace-nowrap">{formatBytes(source.size)}</span>{/if}
+                    <span class="truncate" title={metadata.fileName}>{metadata.fileName}</span>
+                    <span>·</span>
+                    <span class="whitespace-nowrap">{metadata.fileSize}</span>
                 </p>
             </div>
             <button class="btn btn-square border-base-content/20 btn-outline" type="button" aria-label="Unload song" title="Unload song" disabled={state.phase === "rendering"} onclick={unloadSong}><X /></button>

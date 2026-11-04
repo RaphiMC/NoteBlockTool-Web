@@ -16,9 +16,65 @@ export interface LoadNbwMessage extends Message {
 
 export interface RenderMessage extends Message {
     type: "render";
-    audioFileOptions: FlacAudioFileOptions | Mp3AudioFileOptions | OggOpusAudioFileOptions | WavAudioFileOptions;
+    audioFileOptions: WavAudioFileOptions | FlacAudioFileOptions | Mp3AudioFileOptions | OggOpusAudioFileOptions;
     playbackOptions: PlaybackOptions;
     rendererOptions: RendererOptions;
+    extraOptions: ExtraOptions;
+    advancedOptions: AdvancedOptions;
+}
+
+export interface AudioFileOptions {
+    format: string;
+    sampleRate: number;
+    channels: number;
+}
+
+export type AudioFormat = RenderMessage["audioFileOptions"]["format"];
+
+export interface WavAudioFileOptions extends AudioFileOptions {
+    format: "wav";
+    encoding: WavEncoding;
+}
+
+export type WavEncoding = "u8" | "s16le" | "s24le" | "s32le" | "f32le";
+
+export interface FlacAudioFileOptions extends AudioFileOptions {
+    format: "flac";
+    bitsPerSample: number;
+    compressionLevel: number;
+}
+
+export type BitRateEncoding = "cbr" | "abr" | "vbr";
+
+export type Mp3AudioFileOptions = AudioFileOptions & {format: "mp3"} & ({encoding: "cbr" | "abr"; bitRate: number} | {encoding: "vbr"; quality: number});
+
+export interface OggOpusAudioFileOptions extends AudioFileOptions {
+    format: "ogg-opus";
+    encoding: BitRateEncoding;
+    bitRate: number;
+}
+
+export interface PlaybackOptions {
+    volume: number;
+    timingJitter: boolean;
+}
+
+export interface RendererOptions {
+    resampler: Resampler;
+    limiter: Limiter;
+}
+
+export type Resampler = "point" | "linear" | "cubic";
+
+export type Limiter = "windowed" | "global" | "none";
+
+export interface ExtraOptions {
+    includeGroups: string;
+}
+
+export interface AdvancedOptions {
+    maxSimultaneousSoundCount: number;
+    preRenderCacheSize: number;
 }
 
 export interface SetCustomSoundsMessage extends Message {
@@ -43,8 +99,9 @@ export interface ErrorMessage extends Message {
 
 export interface RenderFinishedMessage extends Message {
     type: "render-finished";
-    data: Int8Array<ArrayBuffer>;
     fileName: string;
+    fileSize: string;
+    data: Int8Array<ArrayBuffer>;
     mimeType: string;
 }
 
@@ -55,6 +112,8 @@ export interface RenderProgressMessage extends Message {
 
 export interface SongLoadedMessage extends Message {
     type: "song-loaded";
+    fileName: string;
+    fileSize: string;
     title: string;
     author: string | null;
     originalAuthor: string | null;
@@ -81,51 +140,3 @@ export interface WorkerReadyMessage extends Message {
 }
 
 export type WorkerResponse = ErrorMessage | RenderFinishedMessage | RenderProgressMessage | SongLoadedMessage | StatusMessage | WarningMessage | WorkerReadyMessage;
-
-// Render options
-
-export interface AudioFileOptions {
-    format: string;
-    sampleRate: number;
-    channels: number;
-}
-
-export type AudioFormat = RenderMessage["audioFileOptions"]["format"];
-
-export type BitRateEncoding = "cbr" | "abr" | "vbr";
-
-export interface FlacAudioFileOptions extends AudioFileOptions {
-    format: "flac";
-    bitsPerSample: number;
-    compressionLevel: number;
-}
-
-export type Limiter = "windowed" | "global" | "none";
-
-export type Mp3AudioFileOptions = AudioFileOptions & {format: "mp3"} & ({encoding: "cbr" | "abr"; bitRate: number} | {encoding: "vbr"; quality: number});
-
-export interface OggOpusAudioFileOptions extends AudioFileOptions {
-    format: "ogg-opus";
-    encoding: BitRateEncoding;
-    bitRate: number;
-}
-
-export interface PlaybackOptions {
-    volume: number;
-    timingJitter: boolean;
-}
-
-export interface RendererOptions {
-    resampler: Resampler;
-    limiter: Limiter;
-    maxSounds: number;
-}
-
-export type Resampler = "point" | "linear" | "cubic" | "sinc";
-
-export interface WavAudioFileOptions extends AudioFileOptions {
-    format: "wav";
-    encoding: WavEncoding;
-}
-
-export type WavEncoding = "u8" | "s16le" | "s24le" | "s32le" | "f32le";

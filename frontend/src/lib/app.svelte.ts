@@ -9,11 +9,6 @@ export interface Status {
     tone: Tone;
 }
 
-export interface SongSource {
-    name: string;
-    size?: number;
-}
-
 interface CustomSoundsDirectory {
     name: string;
     fileCount: number;
@@ -22,14 +17,13 @@ interface CustomSoundsDirectory {
 interface RenderResult {
     url: string;
     fileName: string;
-    size: number;
+    fileSize: string;
 }
 
 class AppState {
     workerState = $state<"starting" | "ready" | "failed">("starting");
     activity = $state<Status>({message: "", tone: "loading"});
     song = $state<SongLoadedMessage | null>(null);
-    source = $state<SongSource | null>(null);
     customSoundsDirectory = $state<CustomSoundsDirectory | null>(null);
     loading = $state(false);
     rendering = $state(false);
@@ -72,7 +66,6 @@ function returnToEmpty(): void {
     clearRender();
     state.song = null;
     loadedMessage = "";
-    state.source = null;
     state.error = null;
     setStatus(idleMessage);
 }
@@ -101,9 +94,9 @@ function failRendering(message: string): void {
     showError(message);
 }
 
-function finishRendering({data, fileName, mimeType}: RenderFinishedMessage): void {
+function finishRendering({fileName, fileSize, data, mimeType}: RenderFinishedMessage): void {
     const blob = new Blob([data], {type: mimeType});
-    state.result = {url: URL.createObjectURL(blob), fileName, size: blob.size};
+    state.result = {url: URL.createObjectURL(blob), fileName, fileSize};
     state.progress = 100;
     state.rendering = false;
 }
@@ -132,7 +125,7 @@ function handleMessage(data: WorkerResponse): void {
             clearRender();
             failRendering("The rendered audio could not be prepared for download. Try again.");
         }
-    } else if (data.type === "song-loaded" && state.loading && state.source) {
+    } else if (data.type === "song-loaded" && state.loading) {
         state.song = data;
         state.loading = false;
     } else if (data.type === "error") {
@@ -179,14 +172,13 @@ function startWorker(): void {
     };
 }
 
-function loadSong(message: LoadMessage, source: SongSource): void {
+function loadSong(message: LoadMessage): void {
     const current = worker;
     if (!current || state.phase !== "empty") {
         return;
     }
     state.error = null;
     clearRender();
-    state.source = source;
     state.loading = true;
     setStatus("", "loading");
     try {
@@ -211,7 +203,7 @@ export function loadFiles(files: readonly File[]): void {
     if (file.size === 0) {
         return showError("The selected file is empty. Select another .nbs file.");
     }
-    loadSong({type: "load-file", file}, {name: file.name, size: file.size});
+    loadSong({type: "load-file", file});
 }
 
 function getNbwId(value: string): string | null {
@@ -235,7 +227,7 @@ export function loadNbw(value: string): void {
         showError("Enter a NoteBlockWorld song URL: https://noteblock.world/song/id");
         return;
     }
-    loadSong({type: "load-nbw", id}, {name: `NoteBlockWorld song ${id}`});
+    loadSong({type: "load-nbw", id});
 }
 
 export function unloadSong(): void {
@@ -269,7 +261,7 @@ export function setCustomSounds(files: SetCustomSoundsMessage["files"] = []): vo
 
 export function renderSong(message: RenderMessage): void {
     const current = worker;
-    if (!current || state.phase !== "loaded" || !state.source) {
+    if (!current || state.phase !== "loaded") {
         return;
     }
     state.error = null;

@@ -28,6 +28,9 @@ public final class JsNative {
     private JsNative() {
     }
 
+    @JSBody(params = {"value", "precision"}, script = "return value.toPrecision(precision);")
+    public static native String Number_toPrecision(final double value, final int precision);
+
     @JSBody(params = {"a", "fromIndex", "toIndex", "val"}, script = "a.fill(val, fromIndex, toIndex);")
     public static native void Array_fill(@JSByRef final float[] a, final int fromIndex, final int toIndex, final float val);
 
