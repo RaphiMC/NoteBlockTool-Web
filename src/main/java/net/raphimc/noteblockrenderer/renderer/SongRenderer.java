@@ -52,7 +52,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -64,9 +64,10 @@ public class SongRenderer {
     private final RenderMessage.PlaybackOptions playbackOptions;
     private final RenderMessage.RendererOptions rendererOptions;
     private final RenderMessage.AdvancedOptions advancedOptions;
-    private final AudioMixer mixer;
-    private final Supplier<Resampler> resamplerSupplier;
     private final RangeSet<Integer> includeGroups;
+    private final Supplier<Resampler> resamplerSupplier;
+    private final Random timingJitterRandom;
+    private final AudioMixer mixer;
     private final Map<Note, AudioBuffer> preRenderedNotes = new HashMap<>();
 
     public SongRenderer(final Song song, final Map<Instrument, AudioBuffer> sounds, final RenderMessage.AudioFileOptions audioFileOptions, final RenderMessage.PlaybackOptions playbackOptions, final RenderMessage.RendererOptions rendererOptions, final RenderMessage.ExtraOptions extraOptions, final RenderMessage.AdvancedOptions advancedOptions) {
@@ -76,7 +77,7 @@ public class SongRenderer {
         this.playbackOptions = playbackOptions;
         this.rendererOptions = rendererOptions;
         this.advancedOptions = advancedOptions;
-        this.mixer = new AudioMixer(new AudioFormat(this.audioFileOptions.getSampleRate(), this.audioFileOptions.getStereo() ? 2 : 1));
+        this.includeGroups = StringUtil.parseRange(extraOptions.getIncludeGroups(), true);
         this.resamplerSupplier = switch (this.rendererOptions.getResampler()) {
             case "point" -> PointResampler::new;
             case "linear" -> LinearResampler::new;
@@ -84,7 +85,8 @@ public class SongRenderer {
             case "sinc" -> BlackmanSincResampler::new;
             default -> throw new UnsupportedOperationException("Unsupported resampler: " + this.rendererOptions.getResampler());
         };
-        this.includeGroups = StringUtil.parseRange(extraOptions.getIncludeGroups(), true);
+        this.timingJitterRandom = new Random(song.getFileNameOr("").hashCode());
+        this.mixer = new AudioMixer(new AudioFormat(this.audioFileOptions.getSampleRate(), this.audioFileOptions.getStereo() ? 2 : 1));
     }
 
     public void preRenderMostUsedNotes(final FloatConsumer progressConsumer) {
@@ -169,7 +171,7 @@ public class SongRenderer {
         this.mixer.limitSourceCount(this.advancedOptions.getMaxSimultaneousSoundCount());
         float millis = 1000F / this.song.getTempoEvents().getEffectiveTempo(tick);
         if (this.playbackOptions.getTimingJitter()) {
-            millis += ThreadLocalRandom.current().nextFloat(-1F, 1F);
+            millis += this.timingJitterRandom.nextFloat(-1F, 1F);
             if (millis <= 0F) {
                 millis = 0.1F;
             }
