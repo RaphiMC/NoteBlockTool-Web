@@ -69,6 +69,7 @@ public class SongRenderer {
     private final Random timingJitterRandom;
     private final AudioMixer mixer;
     private final Map<Note, AudioBuffer> preRenderedNotes = new HashMap<>();
+    private float timingJitterDriftMillis;
 
     public SongRenderer(final Song song, final Map<Instrument, AudioBuffer> sounds, final RenderMessage.AudioFileOptions audioFileOptions, final RenderMessage.PlaybackOptions playbackOptions, final RenderMessage.RendererOptions rendererOptions, final RenderMessage.ExtraOptions extraOptions, final RenderMessage.AdvancedOptions advancedOptions) {
         this.song = song;
@@ -171,10 +172,13 @@ public class SongRenderer {
         this.mixer.limitSourceCount(this.advancedOptions.getMaxSimultaneousSoundCount());
         float millis = 1000F / this.song.getTempoEvents().getEffectiveTempo(tick);
         if (this.playbackOptions.getTimingJitter()) {
-            millis += this.timingJitterRandom.nextFloat(-1F, 1F);
-            if (millis <= 0F) {
-                millis = 0.1F;
-            }
+            final float steering = this.timingJitterDriftMillis / 10F;
+            float jitter;
+            do {
+                jitter = this.timingJitterRandom.nextFloat(-Math.min(1F + steering, 1F), Math.min(1F - steering, 1F));
+            } while (millis + jitter <= 0F);
+            this.timingJitterDriftMillis += jitter;
+            millis += jitter;
         }
         return this.mixer.renderMillis(millis);
     }
