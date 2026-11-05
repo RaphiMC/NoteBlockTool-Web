@@ -45,6 +45,7 @@ repositories {
 
 dependencies {
     teavmCompileOnly "org.teavm:teavm-core:0.17.0-dev-2"
+    teavmImplementation "org.bouncycastle:bcprov-jdk18on:1.86"
 
     implementation "com.google.guava:guava:33.7.2-jre"
     implementation "net.raphimc:NoteBlockLib:3.4.1-20261031.120032-2"
