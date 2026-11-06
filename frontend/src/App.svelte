@@ -24,10 +24,10 @@
             <img class="size-8" src={`${import.meta.env.BASE_URL}icon.svg`} width="32" height="32" alt="" />
             <h1 class="flex">
                 NoteBlock
-                <span class="font-normal text-base-content/60">Renderer</span>
+                <span class="font-normal text-base-content/60">Tool</span>
             </h1>
         </div>
-        <a class="btn btn-ghost" href="https://github.com/RaphiMC/NoteBlockRenderer" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository (opens in a new tab)">GitHub</a>
+        <a class="btn btn-ghost" href="https://github.com/RaphiMC/NoteBlockTool-Web" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository (opens in a new tab)">GitHub</a>
     </div>
 </header>
 

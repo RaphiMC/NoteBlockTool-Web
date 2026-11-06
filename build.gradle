@@ -58,7 +58,7 @@ dependencies {
 
 teavm {
     all {
-        mainClass = "net.raphimc.noteblockrenderer.NoteBlockRenderer"
+        mainClass = "net.raphimc.noteblocktool.NoteBlockTool"
     }
     js {
         def production = providers.gradleProperty("environment").map { it == "prod" }.orElse(false)

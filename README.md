@@ -1,7 +1,7 @@
-# NoteBlockRenderer
+# NoteBlockTool (Web)
 Web App for rendering Minecraft Note Block Studio songs to audio files.
 
-To get started, visit the [official page](https://raphimc.net/noteblockrenderer).  
+To get started, visit the [official page](https://raphimc.net/noteblocktool).  
 For a more detailed guide, check out the [Usage](#usage) section below.
 
 ## Features
@@ -24,7 +24,7 @@ or by entering a NoteBlockWorld song URL into the input field and clicking the "
 
 ### Loading custom sounds (Optional)
 After loading a song, you can see the instrument list and optionally load custom sounds.
-NoteBlockRenderer will automatically download vanilla Minecraft sounds from the official Mojang servers.
+NoteBlockTool will automatically download vanilla Minecraft sounds from the official Mojang servers.
 If you want to use your own custom sounds, click the "Choose folder" button in the "Custom Sounds" section and select the folder containing your custom sounds.
 
 ### Rendering the song
@@ -37,7 +37,7 @@ After the rendering is complete, a green box will appear at the bottom of the di
 Optionally there can also be warning messages if some instrument sounds are missing.
 
 ## Development
-The backend of NoteBlockRenderer is written in Java and the frontend is written in TypeScript and Svelte.
+The backend of NoteBlockTool is written in Java and the frontend is written in TypeScript and Svelte.
 
 ### Building the backend
 To build the backend, run the following command in the root directory:
@@ -57,10 +57,10 @@ npm run build
 ```
 
 ## AI disclosure
-NoteBlockRenderer's frontend is being developed with extensive AI assistance. The generated code is manually inspected and adjusted where necessary.
+NoteBlockTool's frontend is being developed with extensive AI assistance. The generated code is manually inspected and adjusted where necessary.
 
 ## Contact
 If you encounter any issues, please report them on the
-[issue tracker](https://github.com/RaphiMC/NoteBlockRenderer/issues).  
-If you just want to talk or need help using NoteBlockRenderer feel free to join my
+[issue tracker](https://github.com/RaphiMC/NoteBlockTool-Web/issues).  
+If you just want to talk or need help using NoteBlockTool feel free to join my
 [Discord](https://raphimc.net/discord).
