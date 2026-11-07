@@ -21,11 +21,8 @@
 <header class="border-b border-base-300">
     <div class="navbar mx-auto max-w-7xl px-4 sm:px-6">
         <div class="flex flex-1 items-center gap-2 font-semibold sm:text-lg">
-            <img class="size-8" src={`${import.meta.env.BASE_URL}icon.svg`} width="32" height="32" alt="" />
-            <h1 class="flex">
-                NoteBlock
-                <span class="font-normal text-base-content/60">Tool</span>
-            </h1>
+            <img class="size-8" src={`${import.meta.env.BASE_URL}icon.png`} width="32" height="32" alt="" />
+            <h1>NoteBlockTool</h1>
         </div>
         <a class="btn btn-ghost" href="https://github.com/RaphiMC/NoteBlockTool-Web" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository (opens in a new tab)">GitHub</a>
     </div>
