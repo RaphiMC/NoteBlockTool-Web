@@ -45,7 +45,7 @@
             limiter: "windowed",
             includeGroups: "",
             maxSimultaneousSoundCount: 32767,
-            preRenderCacheSize: 2000,
+            preRenderCacheSize: 512,
         };
     }
 
@@ -267,7 +267,7 @@
                                     <input class="input w-full" id="render-max-simultaneous-sound-count" type="number" min="1" step="1" bind:value={settings.maxSimultaneousSoundCount} required />
                                 </div>
                                 <div class="fieldset">
-                                    <label class="label" for="render-pre-render-cache-size">Pre-render cache size</label>
+                                    <label class="label" for="render-pre-render-cache-size">Pre-render cache size (MiB)</label>
                                     <input class="input w-full" id="render-pre-render-cache-size" type="number" min="0" step="1" bind:value={settings.preRenderCacheSize} required />
                                 </div>
                             </div>

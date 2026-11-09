@@ -15,24 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.renderer.source;
+package net.raphimc.noteblocktool.teavm.classlib.java.util;
 
-import net.raphimc.audiomixer.resampler.Resampler;
-import net.raphimc.audiomixer.source.audio.impl.BufferedAudioSource;
-import net.raphimc.audiomixer.util.buffer.AudioBuffer;
-import net.raphimc.noteblocklib.model.note.Note;
+import java.util.stream.Stream;
 
-public abstract sealed class NoteAudioSource extends BufferedAudioSource permits PreRenderedNoteAudioSource, InstrumentNoteAudioSource {
+public interface Collection<E> {
 
-    private final Note note;
-
-    protected NoteAudioSource(final AudioBuffer buffer, final Note note, final Resampler resampler) {
-        super(buffer, resampler);
-        this.note = note;
-    }
-
-    public Note getNote() {
-        return this.note;
+    default Stream<E> parallelStream() {
+        return ((java.util.Collection<E>) this).stream();
     }
 
 }

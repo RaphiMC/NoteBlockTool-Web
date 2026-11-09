@@ -17,7 +17,6 @@
  */
 package net.raphimc.noteblocktool;
 
-import net.raphimc.noteblocklib.format.minecraft.MinecraftInstrument;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.handler.MessageHandler;
 import net.raphimc.noteblocktool.handler.impl.LoadFileMessageHandler;
@@ -31,7 +30,6 @@ import net.raphimc.noteblocktool.util.SoundLoader;
 import org.teavm.jso.JSExport;
 import org.teavm.jso.dom.events.MessageEvent;
 
-import java.io.IOException;
 import java.util.Map;
 
 public class NoteBlockTool extends MessageHandler<Message> {
@@ -48,17 +46,12 @@ public class NoteBlockTool extends MessageHandler<Message> {
     private SoundLoader soundLoader = new SoundLoader();
     private Song song;
 
-    public NoteBlockTool() throws IOException {
-        for (MinecraftInstrument instrument : MinecraftInstrument.values()) {
-            if (!this.soundLoader.ensureLoaded(instrument)) {
-                throw new IllegalStateException("Failed to load sound sample for instrument: " + instrument);
-            }
-        }
+    public NoteBlockTool() {
         this.postMessage(WorkerReadyMessage.create());
         this.postStatusMessage("Waiting for song...");
     }
 
-    public static void main(@SuppressWarnings("unused") final String[] args) throws IOException {
+    public static void main(@SuppressWarnings("unused") final String[] args) {
         INSTANCE = new NoteBlockTool();
     }
 

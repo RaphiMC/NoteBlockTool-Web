@@ -31,7 +31,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,11 +49,13 @@ public class SoundLoader {
         }
     }
 
-    public boolean ensureLoaded(final Instrument instrument) throws IOException {
+    public AudioBuffer getOrThrow(final Instrument instrument) throws IOException {
         if (!this.sounds.containsKey(instrument)) {
-            return this.load(instrument);
+            if (!this.load(instrument)) {
+                throw new IOException("Missing sound sample");
+            }
         }
-        return true;
+        return this.sounds.get(instrument);
     }
 
     public void store(final Instrument instrument, final byte[] soundData) throws IOException {
@@ -108,10 +109,6 @@ public class SoundLoader {
             return AudioIo.read(new ByteArrayInputStream(response));
         }
         return null;
-    }
-
-    public Map<Instrument, AudioBuffer> getSounds() {
-        return Collections.unmodifiableMap(this.sounds);
     }
 
     private static String getInstrumentSoundPath(final Instrument instrument) {

@@ -161,9 +161,8 @@ function startWorker(): void {
         if (worker !== current) {
             return;
         }
-        event.preventDefault();
-        console.error("Worker initialization failed.", event.message);
-        failWorker("The worker could not be loaded or initialized. Reload the page and try again.");
+        console.error("The worker encountered an unexpected error.", event.error ?? event.message);
+        failWorker("The worker encountered an unexpected error. Reload the page and try again.");
     };
     current.onmessageerror = () => {
         if (worker === current) {

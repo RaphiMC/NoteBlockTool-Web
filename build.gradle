@@ -48,12 +48,7 @@ dependencies {
     teavmImplementation "org.bouncycastle:bcprov-jdk18on:1.86"
 
     implementation "com.google.guava:guava:33.7.2-jre"
-    implementation "net.raphimc:NoteBlockLib:3.4.1-20261031.120032-2"
-    implementation "net.raphimc:audio-mixer:3.1.0"
-    implementation "org.jcraft:jorbis:0.0.17"
-    implementation "com.plasmoverse:concentus:1.0.0"
-    implementation "io.github.raphimc:jump3r:1.0.6"
-    implementation "io.github.raphimc:libflac-java:1.4.3.1"
+    implementation "net.raphimc:note-block-renderer:1.0.0-20261107.234853-3"
 }
 
 teavm {

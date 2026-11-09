@@ -40,7 +40,6 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -108,7 +107,7 @@ public class LoadNbwMessageHandler extends MessageHandler<LoadNbwMessage> {
         songLoadedMessage.setLength(song.getHumanReadableLength());
         songLoadedMessage.setNoteCount(song.getNotes().getNoteCount());
         songLoadedMessage.setTempo(song.getTempoEvents().getHumanReadableTempoRange());
-        songLoadedMessage.setInstruments(Stream.concat(SongUtil.getUsedVanillaInstruments(song).stream(), SongUtil.getUsedNbsCustomInstruments(song).stream()).map(StringUtil::getInstrumentDisplayName).toArray(String[]::new));
+        songLoadedMessage.setInstruments(SongUtil.getUsedInstruments(song).stream().map(StringUtil::getInstrumentDisplayName).toArray(String[]::new));
         if (song instanceof NbsSong nbsSong) {
             songLoadedMessage.setNbsVersion(JSNumber.valueOf(nbsSong.getVersion()));
         }
