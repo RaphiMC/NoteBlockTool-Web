@@ -34,24 +34,24 @@ import net.raphimc.audiomixer.util.buffer.AudioBuffer;
 import net.raphimc.audiomixer.util.functional.FloatConsumer;
 import net.raphimc.audiomixer.util.io.seekable.SeekableBufferedOutputStream;
 import net.raphimc.audiomixer.util.io.seekable.SeekableByteArrayOutputStream;
-import net.raphimc.noteblocklib.model.note.Instrument;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblockrenderer.AudioMixerNoteBlockRenderer;
 import net.raphimc.noteblockrenderer.NoteBlockRenderer;
 import net.raphimc.noteblockrenderer.provider.SoundProvider;
+import net.raphimc.noteblockrenderer.provider.impl.NoOpSoundProvider;
+import net.raphimc.noteblockrenderer.provider.impl.ResourceSoundProvider;
+import net.raphimc.noteblockrenderer.provider.impl.UrlSoundProvider;
 import net.raphimc.noteblockrenderer.util.MetadataUtil;
 import net.raphimc.noteblocktool.NoteBlockTool;
 import net.raphimc.noteblocktool.handler.MessageHandler;
 import net.raphimc.noteblocktool.message.request.RenderMessage;
 import net.raphimc.noteblocktool.message.response.RenderFinishedMessage;
 import net.raphimc.noteblocktool.message.response.RenderProgressMessage;
-import net.raphimc.noteblocktool.util.SoundLoader;
 import net.raphimc.noteblocktool.util.StringUtil;
 import org.concentus.OpusSignal;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -62,8 +62,6 @@ public class RenderMessageHandler extends MessageHandler<RenderMessage> {
     @Override
     public void handleMessage(final RenderMessage message) throws IOException {
         final Stopwatch stopwatch = Stopwatch.createStarted();
-        final SoundLoader soundLoader = NoteBlockTool.instance().getSoundLoader();
-        final Song song = NoteBlockTool.instance().getSong();
 
         final AudioFormat audioFormat = new AudioFormat(message.getAudioFileOptions().getSampleRate(), message.getAudioFileOptions().getStereo() ? 2 : 1);
         final Supplier<Resampler> resamplerSupplier = switch (message.getRendererOptions().getResampler()) {
@@ -74,6 +72,7 @@ public class RenderMessageHandler extends MessageHandler<RenderMessage> {
         };
         final RangeSet<Integer> includeGroups = StringUtil.parseRange(message.getExtraOptions().getIncludeGroups(), true);
 
+        this.postStatusMessage("Initializing renderer");
         final AudioMixerNoteBlockRenderer.Options options = new AudioMixerNoteBlockRenderer.Options()
             .withSoundLoadExceptionHandler((instrument, e) -> {
                 this.postWarningMessage("Failed to load sound sample for '" + StringUtil.getInstrumentDisplayName(instrument) + "': " + e.getMessage());
@@ -82,18 +81,14 @@ public class RenderMessageHandler extends MessageHandler<RenderMessage> {
             .withTimingJitter(message.getPlaybackOptions().getTimingJitter())
             .withMaxSimultaneousSoundCount(message.getAdvancedOptions().getMaxSimultaneousSoundCount())
             .withNoteFilter(note -> includeGroups.contains(note.getGroupId() + 1));
-        final NoteBlockRenderer renderer = new NoteBlockRenderer(song, audioFormat, new SoundProvider() {
-            @Override
-            public InputStream getSoundInputStream(final Instrument instrument) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public AudioBuffer getSoundBuffer(final Instrument instrument) throws IOException {
-                RenderMessageHandler.this.postStatusMessage("Loading sound sample for '" + StringUtil.getInstrumentDisplayName(instrument) + "'");
-                return soundLoader.getOrThrow(instrument);
-            }
-        }, options);
+        SoundProvider soundProvider = new ResourceSoundProvider().then(new UrlSoundProvider()).then(new NoOpSoundProvider());
+        if (NoteBlockTool.instance().getBundledSoundProvider() != null) {
+            soundProvider = NoteBlockTool.instance().getBundledSoundProvider().then(soundProvider);
+        }
+        if (NoteBlockTool.instance().getCustomSoundProvider() != null) {
+            soundProvider = NoteBlockTool.instance().getCustomSoundProvider().then(soundProvider);
+        }
+        final NoteBlockRenderer renderer = new NoteBlockRenderer(NoteBlockTool.instance().getSong(), audioFormat, soundProvider, options);
 
         this.postStatusMessage("Pre rendering most used notes");
         renderer.preRenderMostUsedNotes(progress -> {
@@ -110,7 +105,7 @@ public class RenderMessageHandler extends MessageHandler<RenderMessage> {
         }, message.getPlaybackOptions().getVolume(), NoteBlockRenderer.Limiter.valueOf(message.getRendererOptions().getLimiter().toUpperCase(Locale.ROOT)));
 
         this.postStatusMessage("Encoding audio");
-        final RenderFinishedMessage renderFinishedMessage = encodeAudio(song, buffer, message.getAudioFileOptions(), progress -> {
+        final RenderFinishedMessage renderFinishedMessage = encodeAudio(NoteBlockTool.instance().getSong(), buffer, message.getAudioFileOptions(), progress -> {
             final RenderProgressMessage renderProgressMessage = RenderProgressMessage.create();
             renderProgressMessage.setProgress(progress);
             this.postMessage(renderProgressMessage);

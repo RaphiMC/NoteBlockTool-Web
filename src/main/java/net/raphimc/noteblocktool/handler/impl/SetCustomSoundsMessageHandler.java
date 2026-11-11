@@ -20,13 +20,17 @@ package net.raphimc.noteblocktool.handler.impl;
 import net.raphimc.noteblocktool.NoteBlockTool;
 import net.raphimc.noteblocktool.handler.MessageHandler;
 import net.raphimc.noteblocktool.message.request.SetCustomSoundsMessage;
-import net.raphimc.noteblocktool.util.SoundLoader;
+import net.raphimc.noteblocktool.util.FileListSoundProvider;
 
 public class SetCustomSoundsMessageHandler extends MessageHandler<SetCustomSoundsMessage> {
 
     @Override
     public void handleMessage(final SetCustomSoundsMessage message) {
-        NoteBlockTool.instance().setSoundLoader(new SoundLoader(message.getFiles()));
+        if (message.getFiles().length > 0) {
+            NoteBlockTool.instance().setCustomSoundProvider(new FileListSoundProvider(message.getFiles()));
+        } else {
+            NoteBlockTool.instance().setCustomSoundProvider(null);
+        }
     }
 
 }

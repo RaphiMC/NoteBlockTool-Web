@@ -20,10 +20,10 @@ package net.raphimc.noteblocktool.handler.impl;
 import com.google.common.base.Stopwatch;
 import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
-import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
 import net.raphimc.noteblocklib.format.nbs.model.NbsSong;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
+import net.raphimc.noteblockrenderer.provider.impl.MapSoundProvider;
 import net.raphimc.noteblocktool.NoteBlockTool;
 import net.raphimc.noteblocktool.handler.MessageHandler;
 import net.raphimc.noteblocktool.message.request.LoadNbwMessage;
@@ -72,10 +72,10 @@ public class LoadNbwMessageHandler extends MessageHandler<LoadNbwMessage> {
         this.postStatusMessage("Extracting song archive");
         final Map<String, byte[]> files = new HashMap<>();
         final ZipInputStream zipInputStream = new ZipInputStream(new ByteArrayInputStream(songArchive));
-        ZipEntry entry;
-        while ((entry = zipInputStream.getNextEntry()) != null) {
-            if (!entry.isDirectory()) {
-                files.put(entry.getName(), zipInputStream.readAllBytes());
+        ZipEntry zipEntry;
+        while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+            if (!zipEntry.isDirectory()) {
+                files.put(zipEntry.getName(), zipInputStream.readAllBytes());
             }
         }
         final byte[] songBytes = files.get("song.nbs");
@@ -88,13 +88,13 @@ public class LoadNbwMessageHandler extends MessageHandler<LoadNbwMessage> {
         song.getNotes().removeSilentNotes();
         NoteBlockTool.instance().setSong(song);
 
-        this.postStatusMessage("Loading sound samples");
-        for (NbsCustomInstrument instrument : SongUtil.getUsedNbsCustomInstruments(song)) {
-            final byte[] soundBytes = files.get("sounds/" + instrument.getSoundFilePathOr(""));
-            if (soundBytes != null) {
-                NoteBlockTool.instance().getSoundLoader().store(instrument, soundBytes);
+        final Map<String, byte[]> sounds = new HashMap<>();
+        for (Map.Entry<String, byte[]> entry : files.entrySet()) {
+            if (entry.getKey().startsWith("sounds/")) {
+                sounds.put(entry.getKey().substring(7), entry.getValue());
             }
         }
+        NoteBlockTool.instance().setBundledSoundProvider(new MapSoundProvider(sounds));
 
         this.postStatusMessage("Building song metadata");
         final SongLoadedMessage songLoadedMessage = SongLoadedMessage.create();

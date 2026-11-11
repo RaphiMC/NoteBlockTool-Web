@@ -18,6 +18,7 @@
 package net.raphimc.noteblocktool;
 
 import net.raphimc.noteblocklib.model.song.Song;
+import net.raphimc.noteblockrenderer.provider.SoundProvider;
 import net.raphimc.noteblocktool.handler.MessageHandler;
 import net.raphimc.noteblocktool.handler.impl.LoadFileMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.LoadNbwMessageHandler;
@@ -26,11 +27,12 @@ import net.raphimc.noteblocktool.handler.impl.SetCustomSoundsMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.UnloadSongMessageHandler;
 import net.raphimc.noteblocktool.message.Message;
 import net.raphimc.noteblocktool.message.response.WorkerReadyMessage;
-import net.raphimc.noteblocktool.util.SoundLoader;
 import org.teavm.jso.JSExport;
 import org.teavm.jso.dom.events.MessageEvent;
 
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 public class NoteBlockTool extends MessageHandler<Message> {
 
@@ -43,10 +45,14 @@ public class NoteBlockTool extends MessageHandler<Message> {
         "render", new RenderMessageHandler(),
         "set-custom-sounds", new SetCustomSoundsMessageHandler()
     );
-    private SoundLoader soundLoader = new SoundLoader();
+    private final Thread messageProcessingThread = new Thread(this::processMessages, "Message Processor");
+    private final BlockingQueue<Message> messageQueue = new ArrayBlockingQueue<>(64);
     private Song song;
+    private SoundProvider bundledSoundProvider;
+    private SoundProvider customSoundProvider;
 
     public NoteBlockTool() {
+        this.messageProcessingThread.start();
         this.postMessage(WorkerReadyMessage.create());
         this.postStatusMessage("Waiting for song...");
     }
@@ -57,11 +63,29 @@ public class NoteBlockTool extends MessageHandler<Message> {
 
     @JSExport
     public static void onMessage(final MessageEvent event) {
-        INSTANCE.handleMessage((Message) event.getData());
+        if (INSTANCE == null) {
+            throw new IllegalStateException("NoteBlockTool instance is not initialized");
+        }
+        if (!INSTANCE.messageProcessingThread.isAlive()) {
+            throw new IllegalStateException("Message processing thread is not alive");
+        }
+        if (!INSTANCE.messageQueue.offer((Message) event.getData())) {
+            throw new IllegalStateException("Message queue is full");
+        }
     }
 
     public static NoteBlockTool instance() {
         return INSTANCE;
+    }
+
+    private void processMessages() {
+        try {
+            while (true) {
+                this.handleMessage(this.messageQueue.take());
+            }
+        } catch (final InterruptedException _) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override
@@ -79,20 +103,28 @@ public class NoteBlockTool extends MessageHandler<Message> {
         }
     }
 
-    public SoundLoader getSoundLoader() {
-        return this.soundLoader;
-    }
-
-    public void setSoundLoader(final SoundLoader soundLoader) {
-        this.soundLoader = soundLoader;
-    }
-
     public Song getSong() {
         return this.song;
     }
 
     public void setSong(final Song song) {
         this.song = song;
+    }
+
+    public SoundProvider getBundledSoundProvider() {
+        return this.bundledSoundProvider;
+    }
+
+    public void setBundledSoundProvider(final SoundProvider bundledSoundProvider) {
+        this.bundledSoundProvider = bundledSoundProvider;
+    }
+
+    public SoundProvider getCustomSoundProvider() {
+        return this.customSoundProvider;
+    }
+
+    public void setCustomSoundProvider(final SoundProvider customSoundProvider) {
+        this.customSoundProvider = customSoundProvider;
     }
 
 }

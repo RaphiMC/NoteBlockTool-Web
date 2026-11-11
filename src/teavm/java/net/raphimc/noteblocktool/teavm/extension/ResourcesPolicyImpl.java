@@ -28,8 +28,11 @@ public class ResourcesPolicyImpl extends DefaultResourcesPolicy {
     @Override
     public String[] supplyResources(final Collection<? extends String> availableClassNames) {
         return new String[]{
-            "banjo.ogg", "bass.ogg", "bassattack.ogg", "bd.ogg", "bell.ogg", "bit.ogg", "cow_bell.ogg", "didgeridoo.ogg", "flute.ogg", "guitar.ogg", "harp.ogg", "harp2.ogg", "hat.ogg",
-            "icechime.ogg", "iron_xylophone.ogg", "pling.ogg", "snare.ogg", "trumpet.ogg", "trumpet_exposed.ogg", "trumpet_oxidized.ogg", "trumpet_weathered.ogg", "xylobone.ogg"
+            "minecraft/note/banjo.ogg", "minecraft/note/bass.ogg", "minecraft/note/bassattack.ogg", "minecraft/note/bd.ogg", "minecraft/note/bell.ogg", "minecraft/note/bit.ogg",
+            "minecraft/note/cow_bell.ogg", "minecraft/note/didgeridoo.ogg", "minecraft/note/flute.ogg", "minecraft/note/guitar.ogg", "minecraft/note/harp.ogg",
+            "minecraft/note/harp2.ogg", "minecraft/note/hat.ogg", "minecraft/note/icechime.ogg", "minecraft/note/iron_xylophone.ogg", "minecraft/note/pling.ogg",
+            "minecraft/note/snare.ogg", "minecraft/note/trumpet.ogg", "minecraft/note/trumpet_exposed.ogg", "minecraft/note/trumpet_oxidized.ogg", "minecraft/note/trumpet_weathered.ogg",
+            "minecraft/note/xylobone.ogg"
         };
     }
 

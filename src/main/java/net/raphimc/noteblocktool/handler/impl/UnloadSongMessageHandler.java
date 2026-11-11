@@ -26,6 +26,7 @@ public class UnloadSongMessageHandler extends MessageHandler<UnloadSongMessage> 
     @Override
     public void handleMessage(final UnloadSongMessage message) {
         NoteBlockTool.instance().setSong(null);
+        NoteBlockTool.instance().setBundledSoundProvider(null);
         this.postStatusMessage("Song unloaded. Waiting for another song...");
     }
 

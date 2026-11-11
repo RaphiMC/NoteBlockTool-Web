@@ -48,7 +48,7 @@ dependencies {
     teavmImplementation "org.bouncycastle:bcprov-jdk18on:1.86"
 
     implementation "com.google.guava:guava:33.7.2-jre"
-    implementation "net.raphimc:note-block-renderer:1.0.0-20261107.234853-3"
+    implementation "net.raphimc:note-block-renderer:1.0.0-20261111.234238-9"
 }
 
 teavm {
