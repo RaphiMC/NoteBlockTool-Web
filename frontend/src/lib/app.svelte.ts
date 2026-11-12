@@ -189,7 +189,7 @@ function loadSong(message: LoadMessage): void {
 }
 
 export function loadFiles(files: readonly File[]): void {
-    if (state.phase !== "empty") {
+    if (state.phase !== "empty" && state.phase !== "loaded") {
         return;
     }
     const [file] = files;
@@ -201,6 +201,9 @@ export function loadFiles(files: readonly File[]): void {
     }
     if (file.size === 0) {
         return showError("The selected file is empty. Select another .nbs file.");
+    }
+    if (state.song) {
+        unloadSong();
     }
     loadSong({type: "load-file", file});
 }

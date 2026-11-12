@@ -101,4 +101,4 @@
 
 <RenderDialog />
 
-<FileDropOverlay enabled={appState.phase === "empty"} onfiles={loadFiles} />
+<FileDropOverlay enabled={appState.phase === "empty" || appState.phase === "loaded"} onfiles={loadFiles} />
