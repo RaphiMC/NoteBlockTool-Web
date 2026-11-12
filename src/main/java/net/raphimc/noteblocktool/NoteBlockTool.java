@@ -22,9 +22,9 @@ import net.raphimc.noteblockrenderer.provider.SoundProvider;
 import net.raphimc.noteblocktool.handler.MessageHandler;
 import net.raphimc.noteblocktool.handler.impl.LoadFileMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.LoadNbwMessageHandler;
-import net.raphimc.noteblocktool.handler.impl.RenderMessageHandler;
+import net.raphimc.noteblocktool.handler.impl.RenderSongMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.SetCustomSoundsMessageHandler;
-import net.raphimc.noteblocktool.handler.impl.UnloadSongMessageHandler;
+import net.raphimc.noteblocktool.handler.impl.UnloadMessageHandler;
 import net.raphimc.noteblocktool.message.Message;
 import net.raphimc.noteblocktool.message.response.WorkerReadyMessage;
 import org.teavm.jso.JSExport;
@@ -41,8 +41,8 @@ public class NoteBlockTool extends MessageHandler<Message> {
     private final Map<String, MessageHandler<?>> messageHandlers = Map.of(
         "load-file", new LoadFileMessageHandler(),
         "load-nbw", new LoadNbwMessageHandler(),
-        "unload-song", new UnloadSongMessageHandler(),
-        "render", new RenderMessageHandler(),
+        "unload", new UnloadMessageHandler(),
+        "render-song", new RenderSongMessageHandler(),
         "set-custom-sounds", new SetCustomSoundsMessageHandler()
     );
     private final Thread messageProcessingThread = new Thread(this::processMessages, "Message Processor");

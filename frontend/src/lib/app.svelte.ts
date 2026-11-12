@@ -1,5 +1,5 @@
 import BackendWorker from "../workers/backend.worker?worker";
-import type {LoadMessage, RenderFinishedMessage, RenderMessage, SetCustomSoundsMessage, SongLoadedMessage, WorkerResponse} from "./messages";
+import type {LoadMessage, RenderFinishedMessage, RenderSongMessage, SetCustomSoundsMessage, SongLoadedMessage, WorkerResponse} from "./messages";
 
 type Phase = "starting" | "empty" | "loading" | "loaded" | "rendering" | "failed";
 type Tone = "idle" | "loading" | "success" | "warning" | "error";
@@ -203,7 +203,7 @@ export function loadFiles(files: readonly File[]): void {
         return showError("The selected file is empty. Select another .nbs file.");
     }
     if (state.song) {
-        unloadSong();
+        unload();
     }
     loadSong({type: "load-file", file});
 }
@@ -232,12 +232,12 @@ export function loadNbw(value: string): void {
     loadSong({type: "load-nbw", id});
 }
 
-export function unloadSong(): void {
+export function unload(): void {
     if (!worker || state.phase !== "loaded") {
         return;
     }
     try {
-        worker.postMessage({type: "unload-song"});
+        worker.postMessage({type: "unload"});
         returnToEmpty();
     } catch (error) {
         console.error("Could not send the unload request to the worker.", error);
@@ -261,7 +261,7 @@ export function setCustomSounds(files: SetCustomSoundsMessage["files"] = []): vo
     }
 }
 
-export function renderSong(message: RenderMessage): void {
+export function renderSong(message: RenderSongMessage): void {
     const current = worker;
     if (!current || state.phase !== "loaded") {
         return;

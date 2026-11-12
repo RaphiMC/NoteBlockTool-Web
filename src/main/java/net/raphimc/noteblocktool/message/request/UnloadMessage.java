@@ -15,19 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.handler.impl;
+package net.raphimc.noteblocktool.message.request;
 
-import net.raphimc.noteblocktool.NoteBlockTool;
-import net.raphimc.noteblocktool.handler.MessageHandler;
-import net.raphimc.noteblocktool.message.request.UnloadSongMessage;
+import net.raphimc.noteblocktool.message.Message;
 
-public class UnloadSongMessageHandler extends MessageHandler<UnloadSongMessage> {
-
-    @Override
-    public void handleMessage(final UnloadSongMessage message) {
-        NoteBlockTool.instance().setSong(null);
-        NoteBlockTool.instance().setBundledSoundProvider(null);
-        this.postStatusMessage("Song unloaded. Waiting for another song...");
-    }
-
+public interface UnloadMessage extends Message {
 }

@@ -3,7 +3,7 @@
     import StatusLine from "./StatusLine.svelte";
     import {renderSong, state as appState} from "../lib/app.svelte";
     import {formatProgress} from "../lib/format";
-    import type {AudioFormat, BitRateEncoding, Limiter, RenderMessage, Resampler, WavEncoding} from "../lib/messages";
+    import type {AudioFormat, BitRateEncoding, Limiter, RenderSongMessage, Resampler, WavEncoding} from "../lib/messages";
 
     interface Settings {
         format: AudioFormat;
@@ -60,7 +60,7 @@
     function submit(event: SubmitEvent): void {
         event.preventDefault();
         const base = {sampleRate: settings.sampleRate, stereo: settings.stereo};
-        let audioFileOptions: RenderMessage["audioFileOptions"];
+        let audioFileOptions: RenderSongMessage["audioFileOptions"];
         switch (settings.format) {
             case "wav":
                 audioFileOptions = {format: "wav", ...base, encoding: settings.wavEncoding};
@@ -80,7 +80,7 @@
                 break;
         }
         renderSong({
-            type: "render",
+            type: "render-song",
             audioFileOptions,
             playbackOptions: {volume: settings.volume, timingJitter: settings.timingJitter},
             rendererOptions: {resampler: settings.resampler, limiter: settings.limiter},

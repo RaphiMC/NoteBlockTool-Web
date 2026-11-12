@@ -21,7 +21,7 @@ import net.raphimc.noteblocktool.message.Message;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.JSProperty;
 
-public interface RenderMessage extends Message {
+public interface RenderSongMessage extends Message {
 
     @JSProperty
     AudioFileOptions getAudioFileOptions();

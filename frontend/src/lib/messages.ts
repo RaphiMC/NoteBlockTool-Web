@@ -14,8 +14,8 @@ export interface LoadNbwMessage extends Message {
     id: string;
 }
 
-export interface RenderMessage extends Message {
-    type: "render";
+export interface RenderSongMessage extends Message {
+    type: "render-song";
     audioFileOptions: WavAudioFileOptions | FlacAudioFileOptions | Mp3AudioFileOptions | OggOpusAudioFileOptions;
     playbackOptions: PlaybackOptions;
     rendererOptions: RendererOptions;
@@ -29,7 +29,7 @@ export interface AudioFileOptions {
     stereo: boolean;
 }
 
-export type AudioFormat = RenderMessage["audioFileOptions"]["format"];
+export type AudioFormat = RenderSongMessage["audioFileOptions"]["format"];
 
 export interface WavAudioFileOptions extends AudioFileOptions {
     format: "wav";
@@ -82,13 +82,13 @@ export interface SetCustomSoundsMessage extends Message {
     files: File[];
 }
 
-export interface UnloadSongMessage extends Message {
-    type: "unload-song";
+export interface UnloadMessage extends Message {
+    type: "unload";
 }
 
 export type LoadMessage = LoadFileMessage | LoadNbwMessage;
 
-export type WorkerRequest = LoadMessage | RenderMessage | SetCustomSoundsMessage | UnloadSongMessage;
+export type WorkerRequest = LoadMessage | RenderSongMessage | SetCustomSoundsMessage | UnloadMessage;
 
 // Responses
 

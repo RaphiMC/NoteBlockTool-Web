@@ -5,7 +5,7 @@
     import Layers from "@lucide/svelte/icons/layers";
     import Metronome from "@lucide/svelte/icons/metronome";
     import X from "@lucide/svelte/icons/x";
-    import {state, unloadSong} from "../lib/app.svelte";
+    import {state, unload} from "../lib/app.svelte";
     import {formatNumber} from "../lib/format";
     import type {SongLoadedMessage} from "../lib/messages";
 
@@ -37,7 +37,7 @@
                     <span class="whitespace-nowrap">{metadata.fileSize}</span>
                 </p>
             </div>
-            <button class="btn btn-square border-base-content/20 btn-outline" type="button" aria-label="Unload song" title="Unload song" disabled={state.phase === "rendering"} onclick={unloadSong}><X /></button>
+            <button class="btn btn-square border-base-content/20 btn-outline" type="button" aria-label="Unload song" title="Unload song" disabled={state.phase === "rendering"} onclick={unload}><X /></button>
         </div>
     </div>
 
