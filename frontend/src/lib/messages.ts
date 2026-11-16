@@ -2,7 +2,14 @@ export interface Message {
     type: string;
 }
 
-// Requests
+// Frontend messages
+
+export interface FrontendPlayerStateMessage extends Message {
+    type: "frontend-player-state";
+    paused: boolean | null;
+    progress: number | null;
+    volume: number | null;
+}
 
 export interface LoadFileMessage extends Message {
     type: "load-file";
@@ -14,8 +21,8 @@ export interface LoadNbwMessage extends Message {
     id: string;
 }
 
-export interface RenderSongMessage extends Message {
-    type: "render-song";
+export interface RenderMessage extends Message {
+    type: "render";
     audioFileOptions: WavAudioFileOptions | FlacAudioFileOptions | Mp3AudioFileOptions | OggOpusAudioFileOptions;
     playbackOptions: PlaybackOptions;
     rendererOptions: RendererOptions;
@@ -29,7 +36,7 @@ export interface AudioFileOptions {
     stereo: boolean;
 }
 
-export type AudioFormat = RenderSongMessage["audioFileOptions"]["format"];
+export type AudioFormat = RenderMessage["audioFileOptions"]["format"];
 
 export interface WavAudioFileOptions extends AudioFileOptions {
     format: "wav";
@@ -82,18 +89,44 @@ export interface SetCustomSoundsMessage extends Message {
     files: File[];
 }
 
+export interface StartPlayerMessage extends Message {
+    type: "start-player";
+    playbackOptions: Pick<PlaybackOptions, "timingJitter">;
+    rendererOptions: Pick<RendererOptions, "resampler">;
+    advancedOptions: AdvancedOptions & {audioBufferMillis: number};
+}
+
+export interface StopPlayerMessage extends Message {
+    type: "stop-player";
+}
+
 export interface UnloadMessage extends Message {
     type: "unload";
 }
 
 export type LoadMessage = LoadFileMessage | LoadNbwMessage;
 
-export type WorkerRequest = LoadMessage | RenderSongMessage | SetCustomSoundsMessage | UnloadMessage;
+export type FrontendMessage = FrontendPlayerStateMessage | LoadMessage | RenderMessage | SetCustomSoundsMessage | StartPlayerMessage | StopPlayerMessage | UnloadMessage;
 
-// Responses
+// Backend messages
+
+export interface BackendPlayerStateMessage extends Message {
+    type: "backend-player-state";
+    paused: boolean;
+    progress: number;
+    humanReadablePosition: string;
+    activeSoundCount: number;
+    processingLoad: number;
+}
+
+export interface CreateSourceDataLineMessage extends Message {
+    type: "create-source-data-line";
+    port: MessagePort;
+}
 
 export interface ErrorMessage extends Message {
     type: "error";
+    context: MessageContext;
     message: string;
 }
 
@@ -118,20 +151,25 @@ export interface SongLoadedMessage extends Message {
     author: string | null;
     originalAuthor: string | null;
     description: string | null;
-    length: string;
+    humanReadableLength: string;
+    lengthInSeconds: number;
     noteCount: number;
-    tempo: string;
+    humanReadableTempoRange: string;
     instruments: string[];
     nbsVersion?: number | null;
 }
 
 export interface StatusMessage extends Message {
     type: "status";
+    context: MessageContext;
     message: string;
 }
 
+export type MessageContext = "main" | "render" | "player";
+
 export interface WarningMessage extends Message {
     type: "warning";
+    context: MessageContext;
     message: string;
 }
 
@@ -139,4 +177,4 @@ export interface WorkerReadyMessage extends Message {
     type: "worker-ready";
 }
 
-export type WorkerResponse = ErrorMessage | RenderFinishedMessage | RenderProgressMessage | SongLoadedMessage | StatusMessage | WarningMessage | WorkerReadyMessage;
+export type BackendMessage = BackendPlayerStateMessage | CreateSourceDataLineMessage | ErrorMessage | RenderFinishedMessage | RenderProgressMessage | SongLoadedMessage | StatusMessage | WarningMessage | WorkerReadyMessage;

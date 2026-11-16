@@ -19,10 +19,15 @@ package net.raphimc.noteblocktool.handler.impl;
 
 import net.raphimc.noteblocktool.NoteBlockTool;
 import net.raphimc.noteblocktool.handler.MessageHandler;
-import net.raphimc.noteblocktool.message.request.SetCustomSoundsMessage;
+import net.raphimc.noteblocktool.message.backend.StatusMessage;
+import net.raphimc.noteblocktool.message.frontend.SetCustomSoundsMessage;
 import net.raphimc.noteblocktool.util.FileListSoundProvider;
 
 public class SetCustomSoundsMessageHandler extends MessageHandler<SetCustomSoundsMessage> {
+
+    public SetCustomSoundsMessageHandler() {
+        super(StatusMessage.CONTEXT_MAIN);
+    }
 
     @Override
     public void handleMessage(final SetCustomSoundsMessage message) {

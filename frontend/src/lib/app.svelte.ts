@@ -1,13 +1,6 @@
 import BackendWorker from "../workers/backend.worker?worker";
-import type {LoadMessage, RenderFinishedMessage, RenderSongMessage, SetCustomSoundsMessage, SongLoadedMessage, WorkerResponse} from "./messages";
-
-type Phase = "starting" | "empty" | "loading" | "loaded" | "rendering" | "failed";
-type Tone = "idle" | "loading" | "success" | "warning" | "error";
-
-export interface Status {
-    message: string;
-    tone: Tone;
-}
+import type {BackendMessage, BackendPlayerStateMessage, FrontendPlayerStateMessage, LoadMessage, MessageContext, RenderFinishedMessage, RenderMessage, SetCustomSoundsMessage, SongLoadedMessage, StartPlayerMessage, StopPlayerMessage} from "./messages";
+import {SourceDataLineHost} from "../audio/source-data-line";
 
 interface CustomSoundsDirectory {
     name: string;
@@ -22,55 +15,58 @@ interface RenderResult {
 
 class AppState {
     workerState = $state<"starting" | "ready" | "failed">("starting");
-    activity = $state<Status>({message: "", tone: "loading"});
-    song = $state<SongLoadedMessage | null>(null);
+    mainStatus = $state("Waiting for action");
+    mainWarnings = $state<string[]>([]);
+    mainError = $state<string | null>(null);
+
+    songMetadata = $state<SongLoadedMessage | null>(null);
+    songLoading = $state(false);
     customSoundsDirectory = $state<CustomSoundsDirectory | null>(null);
-    loading = $state(false);
+
+    renderDialogOpen = $state(false);
+    renderStatus = $state("Waiting for action");
+    renderWarnings = $state<string[]>([]);
+    renderError = $state<string | null>(null);
     rendering = $state(false);
-    error = $state<string | null>(null);
-    dialogOpen = $state(false);
-    progress = $state(0);
-    warnings = $state<string[]>([]);
-    result = $state<RenderResult | null>(null);
-    phase = $derived<Phase>(this.workerState !== "ready" ? this.workerState : this.loading ? "loading" : this.rendering ? "rendering" : this.song ? "loaded" : "empty");
-    status = $derived<Status>(this.error ? {message: this.error, tone: "error"} : this.activity);
+    renderProgress = $state(0);
+    renderResult = $state<RenderResult | null>(null);
+
+    playerDialogOpen = $state(false);
+    playerStatus = $state("Waiting for action");
+    playerWarnings = $state<string[]>([]);
+    playerError = $state<string | null>(null);
+    playerStarted = $state(false);
+    playerState = $state<BackendPlayerStateMessage | null>(null);
 }
 
 export const state = new AppState();
 
 let worker: Worker | null = null;
-let idleMessage = "";
-let loadedMessage = "";
 
-function setStatus(message: string, tone: Tone = "idle"): void {
-    state.activity = {message, tone};
-}
-
-function showError(message: string): void {
-    state.error = message;
+function showError(message: string, context: MessageContext = "main"): void {
+    state[`${context}Error`] = message;
 }
 
 function clearRender(): void {
     state.rendering = false;
-    if (state.result) {
-        URL.revokeObjectURL(state.result.url);
+    if (state.renderResult) {
+        URL.revokeObjectURL(state.renderResult.url);
     }
-    state.result = null;
-    state.progress = 0;
-    state.warnings = [];
+    state.renderResult = null;
+    state.renderProgress = 0;
 }
 
 function returnToEmpty(): void {
-    state.loading = false;
-    state.dialogOpen = false;
+    state.songLoading = false;
+    closeRenderDialog();
+    closePlayerDialog();
     clearRender();
-    state.song = null;
-    loadedMessage = "";
-    state.error = null;
-    setStatus(idleMessage);
+    state.songMetadata = null;
 }
 
 function stopWorker(): void {
+    state.playerStarted = false;
+    state.playerState = null;
     worker?.terminate();
     worker = null;
     state.customSoundsDirectory = null;
@@ -90,119 +86,128 @@ function failLoading(message: string): void {
 
 function failRendering(message: string): void {
     state.rendering = false;
-    setStatus(loadedMessage, "success");
-    showError(message);
+    showError(message, "render");
 }
 
 function finishRendering({fileName, fileSize, data, mimeType}: RenderFinishedMessage): void {
     const blob = new Blob([data], {type: mimeType});
-    state.result = {url: URL.createObjectURL(blob), fileName, fileSize};
-    state.progress = 100;
+    state.renderResult = {url: URL.createObjectURL(blob), fileName, fileSize};
+    state.renderProgress = 100;
     state.rendering = false;
 }
 
-function handleMessage(data: WorkerResponse): void {
-    if (data.type === "worker-ready" && state.phase === "starting") {
-        state.workerState = "ready";
-    } else if (data.type === "status") {
-        if (state.phase === "empty") {
-            idleMessage = data.message;
-        }
-        if (state.phase === "loaded") {
-            loadedMessage = data.message;
-        }
-        setStatus(data.message, state.phase === "empty" ? "idle" : state.phase === "loaded" ? "success" : "loading");
-    } else if (data.type === "warning") {
-        state.warnings.push(data.message);
-        setStatus(data.message, "warning");
-    } else if (data.type === "render-progress" && state.phase === "rendering") {
-        state.progress = data.progress;
-    } else if (data.type === "render-finished" && state.rendering) {
-        try {
-            finishRendering(data);
-        } catch (error) {
-            console.error("Could not prepare the audio download.", error);
-            clearRender();
-            failRendering("The rendered audio could not be prepared for download. Try again.");
-        }
-    } else if (data.type === "song-loaded" && state.loading) {
-        state.song = data;
-        state.loading = false;
-    } else if (data.type === "error") {
-        if (state.phase === "loading") {
-            failLoading(data.message);
-        } else if (state.phase === "rendering") {
-            failRendering(data.message);
-        } else {
-            showError(data.message);
-        }
+function handleMessage(data: BackendMessage): void {
+    if ("context" in data && data.context !== "main" && !state[`${data.context}DialogOpen`]) {
+        return;
+    }
+    switch (data.type) {
+        case "backend-player-state":
+            if (state.playerStarted) {
+                state.playerState = data;
+            }
+            break;
+        case "create-source-data-line":
+            new SourceDataLineHost(data.port);
+            break;
+        case "worker-ready":
+            state.workerState = "ready";
+            break;
+        case "status":
+            if (data.context !== "player" || state.playerStarted) {
+                state[`${data.context}Status`] = data.message;
+            }
+            break;
+        case "warning":
+            state[`${data.context}Warnings`].push(data.message);
+            break;
+        case "render-progress":
+            state.renderProgress = data.progress;
+            break;
+        case "render-finished":
+            try {
+                finishRendering(data);
+            } catch (error) {
+                console.error("Failed to prepare the audio download", error);
+                clearRender();
+                failRendering("Failed to prepare the audio download");
+            }
+            break;
+        case "song-loaded":
+            state.songMetadata = data;
+            state.songLoading = false;
+            break;
+        case "error":
+            if (data.context === "main" && state.songLoading) {
+                failLoading(data.message);
+            } else if (data.context === "render") {
+                failRendering(data.message);
+            } else {
+                showError(data.message, data.context);
+            }
+            break;
+        default:
+            console.error("Unhandled worker message", data);
+            break;
     }
 }
 
 function startWorker(): void {
     state.workerState = "starting";
-    idleMessage = "";
-    setStatus("", "loading");
     let current: Worker;
     try {
         current = new BackendWorker();
         worker = current;
     } catch (error) {
-        console.error("Could not start the worker.", error);
-        failWorker("The worker could not start. Reload the page and try again.");
+        console.error("Failed to start the worker", error);
+        failWorker("Failed to start the worker. Reload the page and try again.");
         return;
     }
-    current.onmessage = ({data}: MessageEvent<WorkerResponse>) => {
+    current.onmessage = ({data}: MessageEvent<BackendMessage>) => {
         if (worker === current) {
             handleMessage(data);
         }
     };
     current.onerror = event => {
-        if (worker !== current) {
-            return;
-        }
-        console.error("The worker encountered an unexpected error.", event.error ?? event.message);
-        failWorker("The worker encountered an unexpected error. Reload the page and try again.");
-    };
-    current.onmessageerror = () => {
         if (worker === current) {
-            failWorker("The worker returned an unreadable response. Reload the page and try again.");
+            console.error("The worker encountered an unexpected error", event.error ?? event.message);
+            failWorker("The worker encountered an unexpected error. Reload the page and try again.");
+        }
+    };
+    current.onmessageerror = event => {
+        if (worker === current) {
+            console.error("The worker returned an unreadable message", event);
+            failWorker("The worker returned an unreadable message. Reload the page and try again.");
         }
     };
 }
 
 function loadSong(message: LoadMessage): void {
     const current = worker;
-    if (!current || state.phase !== "empty") {
+    if (!current) {
         return;
     }
-    state.error = null;
     clearRender();
-    state.loading = true;
-    setStatus("", "loading");
+    state.songLoading = true;
     try {
         current.postMessage(message);
     } catch (error) {
-        console.error("Could not send the load request to the worker.", error);
-        failLoading("The load request could not be sent to the worker. Try again.");
+        console.error("Failed to send the load message to the worker", error);
+        failLoading("Failed to send the load message to the worker");
     }
 }
 
 export function loadFiles(files: readonly File[]): void {
-    if (state.phase !== "empty" && state.phase !== "loaded") {
-        return;
-    }
     const [file] = files;
     if (files.length !== 1 || !file) {
-        return showError("Select one .nbs file at a time.");
+        return showError("Select one .nbs file at a time");
     }
     if (!/\.nbs$/i.test(file.name)) {
-        return showError("Select a Note Block Studio (.nbs) file.");
+        return showError("Select a Note Block Studio (.nbs) file");
     }
     if (file.size === 0) {
         return showError("The selected file is empty. Select another .nbs file.");
     }
-    if (state.song) {
+    if (state.songMetadata) {
         unload();
     }
     loadSong({type: "load-file", file});
@@ -221,9 +226,6 @@ function getNbwId(value: string): string | null {
 }
 
 export function loadNbw(value: string): void {
-    if (state.phase !== "empty") {
-        return;
-    }
     const id = getNbwId(value);
     if (!id) {
         showError("Enter a NoteBlockWorld song URL: https://noteblock.world/song/id");
@@ -233,56 +235,113 @@ export function loadNbw(value: string): void {
 }
 
 export function unload(): void {
-    if (!worker || state.phase !== "loaded") {
+    if (!worker) {
         return;
     }
     try {
         worker.postMessage({type: "unload"});
         returnToEmpty();
+        state.mainStatus = "Waiting for action";
     } catch (error) {
-        console.error("Could not send the unload request to the worker.", error);
-        showError("The unload request could not be sent to the worker. Try again.");
+        console.error("Failed to send the unload message to the worker", error);
+        showError("Failed to send the unload message to the worker");
     }
 }
 
 export function setCustomSounds(files: SetCustomSoundsMessage["files"] = []): void {
     const current = worker;
-    if (!current || (state.phase !== "empty" && state.phase !== "loaded")) {
+    if (!current) {
         return;
     }
     try {
         current.postMessage({type: "set-custom-sounds", files} satisfies SetCustomSoundsMessage);
         const directoryName = files[0]?.webkitRelativePath.split("/")[0];
         state.customSoundsDirectory = directoryName ? {name: directoryName, fileCount: files.length} : null;
-        state.error = null;
     } catch (error) {
-        console.error("Could not send the custom sounds to the worker.", error);
-        showError("The custom sounds could not be sent to the worker. Try again.");
+        console.error("Failed to send the custom sounds to the worker", error);
+        showError("Failed to send the custom sounds to the worker");
     }
 }
 
-export function renderSong(message: RenderSongMessage): void {
+export function renderSong(message: RenderMessage): void {
     const current = worker;
-    if (!current || state.phase !== "loaded") {
+    if (!current) {
         return;
     }
-    state.error = null;
     clearRender();
+    state.renderWarnings = [];
+    state.renderStatus = "Waiting for action";
     state.rendering = true;
-    setStatus("", "loading");
     try {
         current.postMessage(message);
     } catch (error) {
-        console.error("Could not send the render settings to the worker.", error);
-        failRendering("The render settings could not be sent to the worker. Try again.");
+        console.error("Failed to render the song", error);
+        failRendering("Failed to render the song");
     }
+}
+
+export function startPlayer(message: StartPlayerMessage): void {
+    if (!worker) {
+        return;
+    }
+    state.playerWarnings = [];
+    state.playerStatus = "Waiting for action";
+    state.playerState = null;
+    try {
+        worker.postMessage(message);
+        state.playerStarted = true;
+    } catch (error) {
+        console.error("Failed to start the player", error);
+        showError("Failed to start the player", "player");
+    }
+}
+
+export function stopPlayer(): void {
+    if (!worker || !state.playerStarted) {
+        return;
+    }
+    try {
+        worker.postMessage({type: "stop-player"} satisfies StopPlayerMessage);
+        state.playerStarted = false;
+        state.playerState = null;
+        state.playerStatus = "Waiting for action";
+    } catch (error) {
+        console.error("Failed to stop the player", error);
+        showError("Failed to stop the player", "player");
+    }
+}
+
+export function updatePlayerState(changes: Partial<Omit<FrontendPlayerStateMessage, "type">>): void {
+    if (!worker || !state.playerStarted) {
+        return;
+    }
+    try {
+        worker.postMessage({type: "frontend-player-state", paused: null, progress: null, volume: null, ...changes} satisfies FrontendPlayerStateMessage);
+    } catch (error) {
+        console.error("Failed to send the player state to the worker", error);
+        showError("Failed to send the player state to the worker", "player");
+    }
+}
+
+export function closeRenderDialog(): void {
+    state.renderDialogOpen = false;
+    state.renderStatus = "Waiting for action";
+    state.renderWarnings = [];
+    state.renderError = null;
+}
+
+export function closePlayerDialog(): void {
+    stopPlayer();
+    state.playerDialogOpen = false;
+    state.playerStatus = "Waiting for action";
+    state.playerWarnings = [];
+    state.playerError = null;
 }
 
 export function suspendWorker(): void {
     stopWorker();
     returnToEmpty();
     state.workerState = "starting";
-    setStatus("", "loading");
 }
 
 export function resumeWorker(event: PageTransitionEvent): void {

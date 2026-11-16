@@ -15,17 +15,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.message.response;
+package net.raphimc.noteblocktool.message.backend;
 
 import net.raphimc.noteblocktool.message.Message;
+import org.teavm.jso.JSProperty;
 import org.teavm.jso.core.JSObjects;
 
-public interface WorkerReadyMessage extends Message {
+public interface WarningMessage extends Message {
 
-    static WorkerReadyMessage create() {
-        final WorkerReadyMessage workerReadyMessage = JSObjects.create();
-        workerReadyMessage.setType("worker-ready");
-        return workerReadyMessage;
+    String TYPE = "warning";
+
+    static WarningMessage create() {
+        final WarningMessage warningMessage = JSObjects.create();
+        warningMessage.setType(TYPE);
+        return warningMessage;
     }
+
+    static WarningMessage create(final String context, final String message) {
+        final WarningMessage warningMessage = create();
+        warningMessage.setContext(context);
+        warningMessage.setMessage(message);
+        return warningMessage;
+    }
+
+    @JSProperty
+    void setContext(final String context);
+
+    @JSProperty
+    void setMessage(final String message);
 
 }

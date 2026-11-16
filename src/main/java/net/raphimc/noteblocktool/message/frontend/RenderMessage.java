@@ -15,13 +15,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.message.request;
+package net.raphimc.noteblocktool.message.frontend;
 
 import net.raphimc.noteblocktool.message.Message;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.JSProperty;
 
-public interface RenderSongMessage extends Message {
+public interface RenderMessage extends Message {
+
+    String TYPE = "render";
 
     @JSProperty
     AudioFileOptions getAudioFileOptions();

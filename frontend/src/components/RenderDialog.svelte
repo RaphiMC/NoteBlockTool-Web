@@ -1,9 +1,11 @@
 <script lang="ts">
     import X from "@lucide/svelte/icons/x";
+    import ErrorAlert from "./ErrorAlert.svelte";
     import StatusLine from "./StatusLine.svelte";
-    import {renderSong, state as appState} from "../lib/app.svelte";
+    import WarningList from "./WarningList.svelte";
+    import {closeRenderDialog, renderSong, state as appState} from "../lib/app.svelte";
     import {formatProgress} from "../lib/format";
-    import type {AudioFormat, BitRateEncoding, Limiter, RenderSongMessage, Resampler, WavEncoding} from "../lib/messages";
+    import type {AudioFormat, BitRateEncoding, Limiter, RenderMessage, Resampler, WavEncoding} from "../lib/messages";
 
     interface Settings {
         format: AudioFormat;
@@ -50,7 +52,6 @@
     }
 
     let settings = $state(defaultSettings());
-    const rendering = $derived(appState.phase === "rendering");
 
     function modal(dialog: HTMLDialogElement): () => void {
         dialog.showModal();
@@ -60,7 +61,7 @@
     function submit(event: SubmitEvent): void {
         event.preventDefault();
         const base = {sampleRate: settings.sampleRate, stereo: settings.stereo};
-        let audioFileOptions: RenderSongMessage["audioFileOptions"];
+        let audioFileOptions: RenderMessage["audioFileOptions"];
         switch (settings.format) {
             case "wav":
                 audioFileOptions = {format: "wav", ...base, encoding: settings.wavEncoding};
@@ -80,7 +81,7 @@
                 break;
         }
         renderSong({
-            type: "render-song",
+            type: "render",
             audioFileOptions,
             playbackOptions: {volume: settings.volume, timingJitter: settings.timingJitter},
             rendererOptions: {resampler: settings.resampler, limiter: settings.limiter},
@@ -90,44 +91,40 @@
     }
 </script>
 
-{#if appState.dialogOpen}
+{#if appState.renderDialogOpen}
     <dialog
         {@attach modal}
-        class="render-dialog modal bg-neutral/80 p-4 backdrop-blur-sm"
+        class="options-dialog modal bg-neutral/80 p-4 backdrop-blur-sm"
         aria-labelledby="render-dialog-title"
         aria-describedby="render-song-name"
-        onclose={() => {
-            appState.dialogOpen = false;
-        }}>
+        oncancel={event => {
+            if (appState.rendering) {
+                event.preventDefault();
+            }
+        }}
+        onclose={closeRenderDialog}>
         <div class="modal-box">
             <header class="dialog-header">
                 <div class="min-w-0">
                     <h2 class="card-title" id="render-dialog-title">Render audio</h2>
-                    <p class="truncate text-base-content/60" id="render-song-name">{appState.song?.title}</p>
+                    <p class="truncate text-base-content/60" id="render-song-name">{appState.songMetadata!.title}</p>
                 </div>
                 <form method="dialog">
-                    <button class="btn btn-square border-base-content/20 btn-outline" type="submit" aria-label="Close render dialog"><X /></button>
+                    <button class="btn btn-square border-base-content/20 btn-outline" type="submit" disabled={appState.rendering} aria-label="Close render dialog"><X /></button>
                 </form>
             </header>
-            <form class="render-form" onsubmit={submit}>
-                <div class="dialog-settings">
-                    {#if appState.warnings.length}<details class="collapse-arrow collapse mb-4 bg-warning/10 text-warning">
-                            <summary class="collapse-title">{appState.warnings.length} {appState.warnings.length === 1 ? "warning" : "warnings"}</summary>
-                            <div class="collapse-content">
-                                <ul class="grid list-disc gap-2 pl-4 wrap-anywhere whitespace-pre-wrap">
-                                    {#each appState.warnings as warning}<li>{warning}</li>{/each}
-                                </ul>
-                            </div>
-                        </details>{/if}
-                    <fieldset class="render-options space-y-4" disabled={rendering}>
+            <form class="dialog-form" onsubmit={submit}>
+                <div class="dialog-body">
+                    <ErrorAlert bind:message={appState.renderError} />
+                    <WarningList warnings={appState.renderWarnings} />
+                    <fieldset class="dialog-options space-y-4" disabled={appState.rendering}>
                         <legend class="sr-only">Render options</legend>
                         <fieldset class="fieldset">
                             <legend class="fieldset-legend">Audio file</legend>
                             <div class="grid gap-4 sm:grid-cols-3">
                                 <div class="fieldset">
                                     <label class="label" for="render-format">Format</label>
-                                    <!-- svelte-ignore a11y_autofocus (Focus the first setting when the native dialog opens.) -->
-                                    <select class="select w-full" id="render-format" bind:value={settings.format} autofocus>
+                                    <select class="select w-full" id="render-format" bind:value={settings.format}>
                                         <option value="wav">WAV</option>
                                         <option value="flac">FLAC</option>
                                         <option value="mp3">MP3</option>
@@ -277,33 +274,33 @@
                 <footer class="dialog-footer">
                     <div class="mb-2 flex justify-between text-base-content/60">
                         <label for="render-progress">Rendering progress</label>
-                        <span class="tabular-nums">{formatProgress(appState.progress)}</span>
+                        <span class="tabular-nums">{formatProgress(appState.renderProgress)}</span>
                     </div>
-                    <progress class="progress progress-primary" id="render-progress" max="100" value={appState.progress}></progress>
-                    <StatusLine status={appState.status} inDialog />
-                    {#if appState.result}<div class="render-result card mt-4 bg-success/10 p-4">
+                    <progress class="progress progress-primary" id="render-progress" max="100" value={appState.renderProgress}></progress>
+                    <StatusLine status={appState.renderStatus} inDialog />
+                    {#if appState.renderResult}<div class="render-result card mt-4 bg-success/10 p-4">
                             <div class="min-w-0">
                                 <strong class="text-success">Audio ready</strong>
                                 <p class="flex items-center gap-2 text-base-content/60">
-                                    <span class="truncate" title={appState.result.fileName}>{appState.result.fileName}</span>
+                                    <span class="truncate" title={appState.renderResult.fileName}>{appState.renderResult.fileName}</span>
                                     <span class="text-base-content/30">·</span>
-                                    <span class="whitespace-nowrap">{appState.result.fileSize}</span>
+                                    <span class="whitespace-nowrap">{appState.renderResult.fileSize}</span>
                                 </p>
                             </div>
-                            <a class="btn btn-success" href={appState.result.url} download={appState.result.fileName}>Download</a>
-                            <audio class="col-span-full w-full" {@attach preview => () => preview.pause()} src={appState.result.url} controls preload="metadata" aria-label="Rendered audio preview"></audio>
+                            <a class="btn btn-success" href={appState.renderResult.url} download={appState.renderResult.fileName}>Download</a>
+                            <audio class="col-span-full w-full" {@attach preview => () => preview.pause()} src={appState.renderResult.url} controls preload="metadata" aria-label="Rendered audio preview"></audio>
                         </div>{/if}
                     <div class="modal-action flex-wrap justify-between">
                         <button
                             class="btn btn-secondary"
                             type="button"
-                            disabled={rendering}
+                            disabled={appState.rendering}
                             onclick={() => {
                                 settings = defaultSettings();
                             }}>
                             Reset defaults
                         </button>
-                        <button class="btn btn-primary" type="submit" disabled={rendering}>{rendering ? "Rendering…" : "Render"}</button>
+                        <button class="btn btn-primary" type="submit" disabled={appState.rendering}>{appState.rendering ? "Rendering…" : "Render"}</button>
                     </div>
                 </footer>
             </form>

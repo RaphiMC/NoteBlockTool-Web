@@ -15,21 +15,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.message.response;
+package net.raphimc.noteblocktool.teavm.classlib.javax.sound.sampled;
 
-import net.raphimc.noteblocktool.message.Message;
-import org.teavm.jso.JSProperty;
-import org.teavm.jso.core.JSObjects;
+public class LineUnavailableException extends Exception {
 
-public interface RenderProgressMessage extends Message {
-
-    static RenderProgressMessage create() {
-        final RenderProgressMessage renderProgressMessage = JSObjects.create();
-        renderProgressMessage.setType("render-progress");
-        return renderProgressMessage;
+    public LineUnavailableException() {
     }
 
-    @JSProperty
-    void setProgress(final float progress);
+    public LineUnavailableException(final String message) {
+        super(message);
+    }
 
 }

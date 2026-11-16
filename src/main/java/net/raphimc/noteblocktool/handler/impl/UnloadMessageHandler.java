@@ -19,15 +19,19 @@ package net.raphimc.noteblocktool.handler.impl;
 
 import net.raphimc.noteblocktool.NoteBlockTool;
 import net.raphimc.noteblocktool.handler.MessageHandler;
-import net.raphimc.noteblocktool.message.request.UnloadMessage;
+import net.raphimc.noteblocktool.message.backend.StatusMessage;
+import net.raphimc.noteblocktool.message.frontend.UnloadMessage;
 
 public class UnloadMessageHandler extends MessageHandler<UnloadMessage> {
+
+    public UnloadMessageHandler() {
+        super(StatusMessage.CONTEXT_MAIN);
+    }
 
     @Override
     public void handleMessage(final UnloadMessage message) {
         NoteBlockTool.instance().setSong(null);
         NoteBlockTool.instance().setBundledSoundProvider(null);
-        this.postStatusMessage("Song unloaded. Waiting for another song...");
     }
 
 }

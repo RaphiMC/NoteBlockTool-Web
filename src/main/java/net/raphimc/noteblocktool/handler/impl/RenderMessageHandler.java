@@ -44,9 +44,10 @@ import net.raphimc.noteblockrenderer.provider.impl.UrlSoundProvider;
 import net.raphimc.noteblockrenderer.util.MetadataUtil;
 import net.raphimc.noteblocktool.NoteBlockTool;
 import net.raphimc.noteblocktool.handler.MessageHandler;
-import net.raphimc.noteblocktool.message.request.RenderSongMessage;
-import net.raphimc.noteblocktool.message.response.RenderFinishedMessage;
-import net.raphimc.noteblocktool.message.response.RenderProgressMessage;
+import net.raphimc.noteblocktool.message.backend.RenderFinishedMessage;
+import net.raphimc.noteblocktool.message.backend.RenderProgressMessage;
+import net.raphimc.noteblocktool.message.backend.StatusMessage;
+import net.raphimc.noteblocktool.message.frontend.RenderMessage;
 import net.raphimc.noteblocktool.util.StringUtil;
 import org.concentus.OpusSignal;
 
@@ -57,12 +58,17 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class RenderSongMessageHandler extends MessageHandler<RenderSongMessage> {
+public class RenderMessageHandler extends MessageHandler<RenderMessage> {
+
+    public RenderMessageHandler() {
+        super(StatusMessage.CONTEXT_RENDER);
+    }
 
     @Override
-    public void handleMessage(final RenderSongMessage message) throws IOException {
+    public void handleMessage(final RenderMessage message) throws IOException {
         final Stopwatch stopwatch = Stopwatch.createStarted();
 
+        this.postStatusMessage("Initializing renderer");
         final AudioFormat audioFormat = new AudioFormat(message.getAudioFileOptions().getSampleRate(), message.getAudioFileOptions().getStereo() ? 2 : 1);
         final Supplier<Resampler> resamplerSupplier = switch (message.getRendererOptions().getResampler()) {
             case "point" -> PointResampler::new;
@@ -71,8 +77,6 @@ public class RenderSongMessageHandler extends MessageHandler<RenderSongMessage> 
             default -> throw new UnsupportedOperationException("Unsupported resampler: " + message.getRendererOptions().getResampler());
         };
         final RangeSet<Integer> includeGroups = StringUtil.parseRange(message.getExtraOptions().getIncludeGroups(), true);
-
-        this.postStatusMessage("Initializing renderer");
         final AudioMixerNoteBlockRenderer.Options options = new AudioMixerNoteBlockRenderer.Options()
             .withSoundLoadExceptionHandler((instrument, e) -> {
                 this.postWarningMessage("Failed to load sound sample for '" + StringUtil.getInstrumentDisplayName(instrument) + "': " + e.getMessage());
@@ -90,39 +94,33 @@ public class RenderSongMessageHandler extends MessageHandler<RenderSongMessage> 
         }
         final NoteBlockRenderer renderer = new NoteBlockRenderer(NoteBlockTool.instance().getSong(), audioFormat, soundProvider, options);
 
-        this.postStatusMessage("Pre rendering most used notes");
+        this.postStatusMessage("Pre rendering the most used notes");
         renderer.preRenderMostUsedNotes(progress -> {
-            final RenderProgressMessage renderProgressMessage = RenderProgressMessage.create();
-            renderProgressMessage.setProgress(progress);
-            this.postMessage(renderProgressMessage);
+            this.postMessage(RenderProgressMessage.create(progress));
         }, message.getAdvancedOptions().getPreRenderCacheSize() * 1024L * 1024L);
 
         this.postStatusMessage("Rendering song");
         final AudioBuffer buffer = renderer.renderFully(progress -> {
-            final RenderProgressMessage renderProgressMessage = RenderProgressMessage.create();
-            renderProgressMessage.setProgress(progress);
-            this.postMessage(renderProgressMessage);
+            this.postMessage(RenderProgressMessage.create(progress));
         }, message.getPlaybackOptions().getVolume(), NoteBlockRenderer.Limiter.valueOf(message.getRendererOptions().getLimiter().toUpperCase(Locale.ROOT)));
 
         this.postStatusMessage("Encoding audio");
         final RenderFinishedMessage renderFinishedMessage = encodeAudio(NoteBlockTool.instance().getSong(), buffer, message.getAudioFileOptions(), progress -> {
-            final RenderProgressMessage renderProgressMessage = RenderProgressMessage.create();
-            renderProgressMessage.setProgress(progress);
-            this.postMessage(renderProgressMessage);
+            this.postMessage(RenderProgressMessage.create(progress));
         });
         this.postMessage(renderFinishedMessage);
 
         this.postStatusMessage("Rendering finished in " + stopwatch);
     }
 
-    private static RenderFinishedMessage encodeAudio(final Song song, final AudioBuffer buffer, final RenderSongMessage.AudioFileOptions audioFileOptions, final FloatConsumer progressConsumer) throws IOException {
+    private static RenderFinishedMessage encodeAudio(final Song song, final AudioBuffer buffer, final RenderMessage.AudioFileOptions audioFileOptions, final FloatConsumer progressConsumer) throws IOException {
         final RenderFinishedMessage renderFinishedMessage = RenderFinishedMessage.create();
         final SeekableByteArrayOutputStream output = new SeekableByteArrayOutputStream();
         try (AudioOutputStream audioOutputStream = switch (audioFileOptions.getFormat()) {
             case "wav" -> {
                 renderFinishedMessage.setFileName(song.getTitleOrFileName() + ".wav");
                 renderFinishedMessage.setMimeType("audio/wav");
-                final RenderSongMessage.WavAudioFileOptions wavAudioFileOptions = (RenderSongMessage.WavAudioFileOptions) audioFileOptions;
+                final RenderMessage.WavAudioFileOptions wavAudioFileOptions = (RenderMessage.WavAudioFileOptions) audioFileOptions;
                 final PcmSampleEncoding encoding = switch (wavAudioFileOptions.getEncoding()) {
                     case "u8" -> PcmSampleEncoding.U8;
                     case "s16le" -> PcmSampleEncoding.S16_LE;
@@ -136,14 +134,14 @@ public class RenderSongMessageHandler extends MessageHandler<RenderSongMessage> 
             case "flac" -> {
                 renderFinishedMessage.setFileName(song.getTitleOrFileName() + ".flac");
                 renderFinishedMessage.setMimeType("audio/flac");
-                final RenderSongMessage.FlacAudioFileOptions flacAudioFileOptions = (RenderSongMessage.FlacAudioFileOptions) audioFileOptions;
+                final RenderMessage.FlacAudioFileOptions flacAudioFileOptions = (RenderMessage.FlacAudioFileOptions) audioFileOptions;
                 final FlacAudioOutputStream.Encoding encoding = new FlacAudioOutputStream.Encoding(flacAudioFileOptions.getBitsPerSample(), flacAudioFileOptions.getCompressionLevel());
                 yield new FlacAudioOutputStream(new SeekableBufferedOutputStream(output), buffer.format(), encoding, getVorbisAudioTags(song));
             }
             case "mp3" -> {
                 renderFinishedMessage.setFileName(song.getTitleOrFileName() + ".mp3");
                 renderFinishedMessage.setMimeType("audio/mpeg");
-                final RenderSongMessage.Mp3AudioFileOptions mp3AudioFileOptions = (RenderSongMessage.Mp3AudioFileOptions) audioFileOptions;
+                final RenderMessage.Mp3AudioFileOptions mp3AudioFileOptions = (RenderMessage.Mp3AudioFileOptions) audioFileOptions;
                 final Mp3AudioOutputStream.Encoding encoding = switch (mp3AudioFileOptions.getEncoding()) {
                     case "cbr" -> Mp3AudioOutputStream.Encoding.cbr(mp3AudioFileOptions.getBitRate());
                     case "abr" -> Mp3AudioOutputStream.Encoding.abr(mp3AudioFileOptions.getBitRate());
@@ -156,7 +154,7 @@ public class RenderSongMessageHandler extends MessageHandler<RenderSongMessage> 
             case "ogg-opus" -> {
                 renderFinishedMessage.setFileName(song.getTitleOrFileName() + ".opus");
                 renderFinishedMessage.setMimeType("audio/ogg");
-                final RenderSongMessage.OggOpusAudioFileOptions oggOpusAudioFileOptions = (RenderSongMessage.OggOpusAudioFileOptions) audioFileOptions;
+                final RenderMessage.OggOpusAudioFileOptions oggOpusAudioFileOptions = (RenderMessage.OggOpusAudioFileOptions) audioFileOptions;
                 final OggOpusAudioOutputStream.Encoding encoding = switch (oggOpusAudioFileOptions.getEncoding()) {
                     case "cbr" -> OggOpusAudioOutputStream.Encoding.cbr(oggOpusAudioFileOptions.getBitRate());
                     case "abr" -> OggOpusAudioOutputStream.Encoding.abr(oggOpusAudioFileOptions.getBitRate());

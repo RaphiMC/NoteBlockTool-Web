@@ -1,3 +1,3 @@
-import type {WorkerRequest} from "../lib/messages";
+import type {FrontendMessage} from "../lib/messages";
 
-export function onMessage(event: MessageEvent<WorkerRequest>): void;
+export function onMessage(event: MessageEvent<FrontendMessage>): void;

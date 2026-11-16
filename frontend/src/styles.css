@@ -79,16 +79,16 @@
         @apply min-h-96 items-center justify-center gap-4 p-8 text-center;
     }
 
-    .loader-art {
+    .loading-indicator {
         @apply relative mb-2 grid size-20 place-items-center text-primary;
     }
 
-    .loader-art::before {
+    .loading-indicator::before {
         @apply absolute inset-0 animate-spin rounded-full border-2 border-primary/20 border-t-primary;
         content: "";
     }
 
-    .loader-art .lucide {
+    .loading-indicator .lucide {
         @apply size-6;
     }
 
@@ -127,7 +127,7 @@
         appearance: auto;
     }
 
-    .render-dialog {
+    .options-dialog {
         .modal-box {
             @apply flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-primary/20 p-0 shadow-2xl;
         }
@@ -136,15 +136,15 @@
             @apply flex shrink-0 items-start justify-between gap-4 border-b border-base-300 p-6;
         }
 
-        .render-form {
+        .dialog-form {
             @apply flex min-h-0 flex-col;
         }
 
-        .dialog-settings {
+        .dialog-body {
             @apply min-h-0 overflow-y-auto overscroll-contain p-6;
         }
 
-        .render-options > .fieldset:not(:last-child) {
+        .dialog-options > .fieldset:not(:last-child) {
             @apply border-b border-base-300 pb-4;
         }
 
@@ -172,7 +172,7 @@
         scroll-behavior: auto !important;
     }
 
-    .loader-art::before {
+    .loading-indicator::before {
         border-style: dotted;
     }
 }

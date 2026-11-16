@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.message.response;
+package net.raphimc.noteblocktool.message.backend;
 
 import net.raphimc.noteblocktool.message.Message;
 import org.teavm.jso.JSProperty;
@@ -23,11 +23,27 @@ import org.teavm.jso.core.JSObjects;
 
 public interface StatusMessage extends Message {
 
+    String TYPE = "status";
+
+    String CONTEXT_MAIN = "main";
+    String CONTEXT_RENDER = "render";
+    String CONTEXT_PLAYER = "player";
+
     static StatusMessage create() {
         final StatusMessage statusMessage = JSObjects.create();
-        statusMessage.setType("status");
+        statusMessage.setType(TYPE);
         return statusMessage;
     }
+
+    static StatusMessage create(final String context, final String message) {
+        final StatusMessage statusMessage = create();
+        statusMessage.setContext(context);
+        statusMessage.setMessage(message);
+        return statusMessage;
+    }
+
+    @JSProperty
+    void setContext(final String context);
 
     @JSProperty
     void setMessage(final String message);

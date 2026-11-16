@@ -15,31 +15,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.message.response;
+package net.raphimc.noteblocktool.util.js;
 
-import net.raphimc.noteblocktool.message.Message;
 import org.teavm.jso.JSByRef;
-import org.teavm.jso.JSProperty;
-import org.teavm.jso.core.JSObjects;
+import org.teavm.jso.JSClass;
+import org.teavm.jso.JSModule;
+import org.teavm.jso.JSObject;
+import org.teavm.jso.typedarrays.SharedArrayBuffer;
 
-public interface RenderFinishedMessage extends Message {
+@JSClass
+@JSModule("ringbuf.js")
+public class RingBuffer implements JSObject {
 
-    static RenderFinishedMessage create() {
-        final RenderFinishedMessage renderFinishedMessage = JSObjects.create();
-        renderFinishedMessage.setType("render-finished");
-        return renderFinishedMessage;
+    public static native SharedArrayBuffer getStorageForCapacity(final int capacity, final JSObject type);
+
+    public RingBuffer(final SharedArrayBuffer storage, final JSObject type) {
     }
 
-    @JSProperty
-    void setFileName(final String fileName);
+    public native int push(@JSByRef(optional = true) final float[] elements, final int length, final int offset);
 
-    @JSProperty
-    void setFileSize(final String fileSize);
+    public native int availableRead();
 
-    @JSProperty
-    void setData(@JSByRef(optional = true) final byte[] data);
-
-    @JSProperty
-    void setMimeType(final String mimeType);
+    public native int availableWrite();
 
 }

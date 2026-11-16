@@ -25,21 +25,26 @@ import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.NoteBlockTool;
 import net.raphimc.noteblocktool.handler.MessageHandler;
-import net.raphimc.noteblocktool.message.request.LoadFileMessage;
-import net.raphimc.noteblocktool.message.response.SongLoadedMessage;
-import net.raphimc.noteblocktool.util.JsNative;
+import net.raphimc.noteblocktool.message.backend.SongLoadedMessage;
+import net.raphimc.noteblocktool.message.backend.StatusMessage;
+import net.raphimc.noteblocktool.message.frontend.LoadFileMessage;
 import net.raphimc.noteblocktool.util.StringUtil;
+import net.raphimc.noteblocktool.util.js.FileReaderSync;
 import org.teavm.jso.core.JSNumber;
 import org.teavm.jso.typedarrays.Int8Array;
 
 public class LoadFileMessageHandler extends MessageHandler<LoadFileMessage> {
+
+    public LoadFileMessageHandler() {
+        super(StatusMessage.CONTEXT_MAIN);
+    }
 
     @Override
     public void handleMessage(final LoadFileMessage message) throws Exception {
         final Stopwatch stopwatch = Stopwatch.createStarted();
 
         this.postStatusMessage("Reading file");
-        final byte[] bytes = new Int8Array(JsNative.FileReaderSync_readAsArrayBuffer(message.getFile())).copyToJavaArray();
+        final byte[] bytes = new Int8Array(new FileReaderSync().readAsArrayBuffer(message.getFile())).copyToJavaArray();
 
         this.postStatusMessage("Parsing song");
         final Song song = NoteBlockLib.readSong(bytes, SongFormat.NBS, message.getFile().getName());
@@ -54,9 +59,10 @@ public class LoadFileMessageHandler extends MessageHandler<LoadFileMessage> {
         songLoadedMessage.setAuthor(song.getAuthor());
         songLoadedMessage.setOriginalAuthor(song.getOriginalAuthor());
         songLoadedMessage.setDescription(song.getDescription());
-        songLoadedMessage.setLength(song.getHumanReadableLength());
+        songLoadedMessage.setHumanReadableLength(song.getHumanReadableLength());
+        songLoadedMessage.setLengthInSeconds(song.getLengthInSeconds());
         songLoadedMessage.setNoteCount(song.getNotes().getNoteCount());
-        songLoadedMessage.setTempo(song.getTempoEvents().getHumanReadableTempoRange());
+        songLoadedMessage.setHumanReadableTempoRange(song.getTempoEvents().getHumanReadableTempoRange());
         songLoadedMessage.setInstruments(SongUtil.getUsedInstruments(song).stream().map(StringUtil::getInstrumentDisplayName).toArray(String[]::new));
         if (song instanceof NbsSong nbsSong) {
             songLoadedMessage.setNbsVersion(JSNumber.valueOf(nbsSong.getVersion()));

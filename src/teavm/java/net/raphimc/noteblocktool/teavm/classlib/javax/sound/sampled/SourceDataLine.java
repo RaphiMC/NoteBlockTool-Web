@@ -15,15 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.message.request;
+package net.raphimc.noteblocktool.teavm.classlib.javax.sound.sampled;
 
-import net.raphimc.noteblocktool.message.Message;
-import org.teavm.jso.JSProperty;
-import org.teavm.jso.file.File;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.LineUnavailableException;
 
-public interface SetCustomSoundsMessage extends Message {
+public interface SourceDataLine extends DataLine {
 
-    @JSProperty
-    File[] getFiles();
+    void open(final AudioFormat format, final int bufferSize) throws LineUnavailableException;
+
+    void open(final AudioFormat format) throws LineUnavailableException;
+
+    int write(final byte[] b, final int off, final int len);
 
 }

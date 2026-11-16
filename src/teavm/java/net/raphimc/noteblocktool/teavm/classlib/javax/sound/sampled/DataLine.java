@@ -15,9 +15,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.message.request;
+package net.raphimc.noteblocktool.teavm.classlib.javax.sound.sampled;
 
-import net.raphimc.noteblocktool.message.Message;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.Line;
 
-public interface UnloadMessage extends Message {
+public interface DataLine extends Line {
+
+    void drain();
+
+    void flush();
+
+    void start();
+
+    void stop();
+
+    boolean isRunning();
+
+    boolean isActive();
+
+    AudioFormat getFormat();
+
+    int getBufferSize();
+
+    int available();
+
 }

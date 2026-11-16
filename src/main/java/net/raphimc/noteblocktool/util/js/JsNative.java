@@ -15,12 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.util;
+package net.raphimc.noteblocktool.util.js;
 
 import org.teavm.jso.JSBody;
 import org.teavm.jso.JSByRef;
+import org.teavm.jso.JSObject;
 import org.teavm.jso.file.File;
-import org.teavm.jso.typedarrays.ArrayBuffer;
 
 @SuppressWarnings("checkstyle:MethodName")
 public final class JsNative {
@@ -28,16 +28,28 @@ public final class JsNative {
     private JsNative() {
     }
 
+    @JSBody(params = "message", script = "postMessage(message);")
+    public static native void postMessage(final JSObject message);
+
+    @JSBody(params = {"message", "transfer"}, script = "postMessage(message, transfer);")
+    public static native void postMessage(final JSObject message, final JSObject... transfer);
+
     @JSBody(params = {"value", "precision"}, script = "return value.toPrecision(precision);")
     public static native String Number_toPrecision(final double value, final int precision);
 
     @JSBody(params = {"a", "fromIndex", "toIndex", "val"}, script = "a.fill(val, fromIndex, toIndex);")
     public static native void Array_fill(@JSByRef final float[] a, final int fromIndex, final int toIndex, final float val);
 
-    @JSBody(params = "file", script = "return new FileReaderSync().readAsArrayBuffer(file);")
-    public static native ArrayBuffer FileReaderSync_readAsArrayBuffer(final File file);
-
     @JSBody(params = "file", script = "return file.webkitRelativePath;")
     public static native String File_getWebkitRelativePath(final File file);
+
+    @JSBody(script = "return Float32Array;")
+    public static native JSObject Float32Array_getConstructor();
+
+    @JSBody(script = "return crossOriginIsolated === true;")
+    public static native boolean isCrossOriginIsolated();
+
+    @JSBody(script = "return typeof SharedArrayBuffer === 'function';")
+    public static native boolean SharedArrayBuffer_isAvailable();
 
 }

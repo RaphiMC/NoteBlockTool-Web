@@ -5,10 +5,9 @@
     import {formatNumber} from "../lib/format";
 
     let directoryInput: HTMLInputElement;
-    const busy = $derived(appState.phase === "loading" || appState.phase === "rendering");
 
     function selectDirectory(input: HTMLInputElement): void {
-        const files = Array.from(input.files ?? []);
+        const files = Array.from(input.files!);
         if (files.length === 0) {
             return;
         }
@@ -33,8 +32,8 @@
             </div>
         </div>
         <div class="flex flex-wrap gap-2">
-            <button class="btn btn-soft btn-primary enabled:border-primary/25" type="button" disabled={busy} onclick={() => directoryInput.click()}><FolderOpen />{appState.customSoundsDirectory ? "Change folder" : "Choose folder"}</button>
-            {#if appState.customSoundsDirectory}<button class="btn border-base-content/20 btn-outline" type="button" disabled={busy} onclick={() => setCustomSounds()}><X />Remove</button>{/if}
+            <button class="btn border-primary/25 btn-soft btn-primary" type="button" onclick={() => directoryInput.click()}><FolderOpen />{appState.customSoundsDirectory ? "Change folder" : "Choose folder"}</button>
+            {#if appState.customSoundsDirectory}<button class="btn border-base-content/20 btn-outline" type="button" onclick={() => setCustomSounds()}><X />Remove</button>{/if}
         </div>
     </div>
 </section>

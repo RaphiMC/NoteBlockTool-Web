@@ -12,8 +12,8 @@
     type="file"
     accept=".nbs"
     onchange={event => {
-        if (event.currentTarget.files?.length) {
-            loadFiles(Array.from(event.currentTarget.files));
+        if (event.currentTarget.files!.length) {
+            loadFiles(Array.from(event.currentTarget.files!));
         }
     }}
     hidden />
@@ -23,7 +23,7 @@
         <span class="icon-box" aria-hidden="true"><Upload /></span>
         <h2 class="card-title">Load a song</h2>
         <p class="grow-0 text-base-content/60">Drag and drop an .nbs file anywhere, or select one below.</p>
-        <button class="btn btn-primary" type="button" onclick={() => fileInput.click()} {@attach element => element.focus({preventScroll: true})}><FolderOpen />Choose file</button>
+        <button class="btn btn-primary" type="button" onclick={() => fileInput.click()}><FolderOpen />Choose file</button>
     </div>
 </section>
 

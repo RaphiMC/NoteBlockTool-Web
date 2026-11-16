@@ -15,14 +15,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.message.request;
+package net.raphimc.noteblocktool.message.backend;
 
 import net.raphimc.noteblocktool.message.Message;
 import org.teavm.jso.JSProperty;
+import org.teavm.jso.core.JSObjects;
+import org.teavm.jso.workers.MessagePort;
 
-public interface LoadNbwMessage extends Message {
+public interface CreateSourceDataLineMessage extends Message {
+
+    String TYPE = "create-source-data-line";
+
+    static CreateSourceDataLineMessage create() {
+        final CreateSourceDataLineMessage createSourceDataLineMessage = JSObjects.create();
+        createSourceDataLineMessage.setType(TYPE);
+        return createSourceDataLineMessage;
+    }
+
+    static CreateSourceDataLineMessage create(final MessagePort port) {
+        final CreateSourceDataLineMessage createSourceDataLineMessage = create();
+        createSourceDataLineMessage.setPort(port);
+        return createSourceDataLineMessage;
+    }
 
     @JSProperty
-    String getId();
+    void setPort(final MessagePort port);
 
 }

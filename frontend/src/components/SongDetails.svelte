@@ -5,7 +5,7 @@
     import Layers from "@lucide/svelte/icons/layers";
     import Metronome from "@lucide/svelte/icons/metronome";
     import X from "@lucide/svelte/icons/x";
-    import {state, unload} from "../lib/app.svelte";
+    import {unload} from "../lib/app.svelte";
     import {formatNumber} from "../lib/format";
     import type {SongLoadedMessage} from "../lib/messages";
 
@@ -37,14 +37,14 @@
                     <span class="whitespace-nowrap">{metadata.fileSize}</span>
                 </p>
             </div>
-            <button class="btn btn-square border-base-content/20 btn-outline" type="button" aria-label="Unload song" title="Unload song" disabled={state.phase === "rendering"} onclick={unload}><X /></button>
+            <button class="btn btn-square border-base-content/20 btn-outline" type="button" aria-label="Unload song" title="Unload song" onclick={unload}><X /></button>
         </div>
     </div>
 
     <div class={["panel stats grid grid-flow-row grid-cols-2", metadata.nbsVersion != null ? "md:grid-cols-4" : "md:grid-cols-3"]}>
-        {@render statistic("Duration", metadata.length, Clock)}
+        {@render statistic("Duration", metadata.humanReadableLength, Clock)}
         {@render statistic("Notes", formatNumber(metadata.noteCount), EighthNotes)}
-        {@render statistic("Tempo", `${metadata.tempo} TPS`, Metronome)}
+        {@render statistic("Tempo", `${metadata.humanReadableTempoRange} t/s`, Metronome)}
         {#if metadata.nbsVersion != null}{@render statistic("NBS version", metadata.nbsVersion, Layers)}{/if}
     </div>
 

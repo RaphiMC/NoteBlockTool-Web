@@ -18,43 +18,40 @@
 package net.raphimc.noteblocktool.handler;
 
 import net.raphimc.noteblocktool.message.Message;
-import net.raphimc.noteblocktool.message.response.ErrorMessage;
-import net.raphimc.noteblocktool.message.response.StatusMessage;
-import net.raphimc.noteblocktool.message.response.WarningMessage;
+import net.raphimc.noteblocktool.message.backend.ErrorMessage;
+import net.raphimc.noteblocktool.message.backend.StatusMessage;
+import net.raphimc.noteblocktool.message.backend.WarningMessage;
 import net.raphimc.noteblocktool.util.Logger;
-import org.teavm.jso.JSBody;
+import net.raphimc.noteblocktool.util.js.JsNative;
 import org.teavm.jso.JSObject;
 
 public abstract class MessageHandler<T extends Message> {
+
+    private final String messageContext;
+
+    protected MessageHandler(final String messageContext) {
+        this.messageContext = messageContext;
+    }
 
     public abstract void handleMessage(final T message) throws Throwable;
 
     protected void postStatusMessage(final String message) {
         Logger.info(message);
-        final StatusMessage statusMessage = StatusMessage.create();
-        statusMessage.setMessage(message);
-        this.postMessage(statusMessage);
+        this.postMessage(StatusMessage.create(this.messageContext, message));
     }
 
     protected void postWarningMessage(final String message) {
         Logger.error(message);
-        final WarningMessage warningMessage = WarningMessage.create();
-        warningMessage.setMessage(message);
-        this.postMessage(warningMessage);
+        this.postMessage(WarningMessage.create(this.messageContext, message));
     }
 
-    protected void postErrorMessage(final String message) {
+    public void postErrorMessage(final String message) {
         Logger.error(message);
-        final ErrorMessage errorMessage = ErrorMessage.create();
-        errorMessage.setMessage(message);
-        this.postMessage(errorMessage);
+        this.postMessage(ErrorMessage.create(this.messageContext, message));
     }
 
     protected void postMessage(final JSObject message) {
-        self_postMessage(message);
+        JsNative.postMessage(message);
     }
-
-    @JSBody(params = "message", script = "self.postMessage(message);")
-    private static native void self_postMessage(final JSObject message);
 
 }

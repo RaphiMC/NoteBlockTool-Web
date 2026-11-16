@@ -15,52 +15,35 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.message.response;
+package net.raphimc.noteblocktool.message.backend;
 
 import net.raphimc.noteblocktool.message.Message;
 import org.teavm.jso.JSProperty;
-import org.teavm.jso.core.JSNumber;
 import org.teavm.jso.core.JSObjects;
 
-public interface SongLoadedMessage extends Message {
+public interface BackendPlayerStateMessage extends Message {
 
-    static SongLoadedMessage create() {
-        final SongLoadedMessage songLoadedMessage = JSObjects.create();
-        songLoadedMessage.setType("song-loaded");
-        return songLoadedMessage;
+    String TYPE = "backend-player-state";
+
+    static BackendPlayerStateMessage create() {
+        final BackendPlayerStateMessage backendPlayerStateMessage = JSObjects.create();
+        backendPlayerStateMessage.setType(TYPE);
+        return backendPlayerStateMessage;
     }
 
     @JSProperty
-    void setFileName(final String fileName);
+    void setPaused(final boolean paused);
 
     @JSProperty
-    void setFileSize(final String fileSize);
+    void setProgress(final float progress);
 
     @JSProperty
-    void setTitle(final String title);
+    void setHumanReadablePosition(final String position);
 
     @JSProperty
-    void setAuthor(final String author);
+    void setActiveSoundCount(final int activeSoundCount);
 
     @JSProperty
-    void setOriginalAuthor(final String originalAuthor);
-
-    @JSProperty
-    void setDescription(final String description);
-
-    @JSProperty
-    void setLength(final String length);
-
-    @JSProperty
-    void setNoteCount(final int noteCount);
-
-    @JSProperty
-    void setTempo(final String tempo);
-
-    @JSProperty
-    void setInstruments(final String[] instruments);
-
-    @JSProperty
-    void setNbsVersion(final JSNumber nbsVersion);
+    void setProcessingLoad(final float processingLoad);
 
 }

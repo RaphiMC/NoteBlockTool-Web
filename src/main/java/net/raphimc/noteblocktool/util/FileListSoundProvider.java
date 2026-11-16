@@ -21,6 +21,8 @@ import net.raphimc.noteblocklib.format.minecraft.MinecraftInstrument;
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
 import net.raphimc.noteblocklib.model.note.Instrument;
 import net.raphimc.noteblockrenderer.provider.SoundProvider;
+import net.raphimc.noteblocktool.util.js.FileReaderSync;
+import net.raphimc.noteblocktool.util.js.JsNative;
 import org.teavm.jso.file.File;
 import org.teavm.jso.typedarrays.Int8Array;
 
@@ -45,7 +47,7 @@ public class FileListSoundProvider implements SoundProvider {
     public InputStream getSoundInputStream(final Instrument instrument) throws IOException {
         final String soundPath = getInstrumentSoundPath(instrument);
         if (this.sounds.containsKey(soundPath)) {
-            return new ByteArrayInputStream(new Int8Array(JsNative.FileReaderSync_readAsArrayBuffer(this.sounds.get(soundPath))).copyToJavaArray());
+            return new ByteArrayInputStream(new Int8Array(new FileReaderSync().readAsArrayBuffer(this.sounds.get(soundPath))).copyToJavaArray());
         } else {
             throw new IOException("Missing sound sample");
         }

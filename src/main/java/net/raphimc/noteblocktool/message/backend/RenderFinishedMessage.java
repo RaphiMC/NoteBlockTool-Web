@@ -15,21 +15,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.message.response;
+package net.raphimc.noteblocktool.message.backend;
 
 import net.raphimc.noteblocktool.message.Message;
+import org.teavm.jso.JSByRef;
 import org.teavm.jso.JSProperty;
 import org.teavm.jso.core.JSObjects;
 
-public interface ErrorMessage extends Message {
+public interface RenderFinishedMessage extends Message {
 
-    static ErrorMessage create() {
-        final ErrorMessage errorMessage = JSObjects.create();
-        errorMessage.setType("error");
-        return errorMessage;
+    String TYPE = "render-finished";
+
+    static RenderFinishedMessage create() {
+        final RenderFinishedMessage renderFinishedMessage = JSObjects.create();
+        renderFinishedMessage.setType(TYPE);
+        return renderFinishedMessage;
     }
 
     @JSProperty
-    void setMessage(final String message);
+    void setFileName(final String fileName);
+
+    @JSProperty
+    void setFileSize(final String fileSize);
+
+    @JSProperty
+    void setData(@JSByRef(optional = true) final byte[] data);
+
+    @JSProperty
+    void setMimeType(final String mimeType);
 
 }

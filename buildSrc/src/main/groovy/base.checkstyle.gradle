@@ -85,7 +85,6 @@ checkstyle {
                 <module name="InappropriateJavadocBlockTagsOnPackage"/>
                 <module name="InappropriateJavadocBlockTagsOnType"/>
                 <module name="InnerTypeLast"/>
-                <module name="InterfaceIsType"/>
                 <module name="InterfaceTypeParameterName">
                     <property name="format" value="\${typeParameterNameFormat}"/>
                 </module>

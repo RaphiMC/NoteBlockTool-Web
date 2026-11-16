@@ -18,15 +18,28 @@
 package net.raphimc.noteblocktool;
 
 import net.raphimc.noteblocklib.model.song.Song;
+import net.raphimc.noteblockrenderer.NoteBlockPlayer;
 import net.raphimc.noteblockrenderer.provider.SoundProvider;
 import net.raphimc.noteblocktool.handler.MessageHandler;
+import net.raphimc.noteblocktool.handler.impl.FrontendPlayerStateMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.LoadFileMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.LoadNbwMessageHandler;
-import net.raphimc.noteblocktool.handler.impl.RenderSongMessageHandler;
+import net.raphimc.noteblocktool.handler.impl.RenderMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.SetCustomSoundsMessageHandler;
+import net.raphimc.noteblocktool.handler.impl.StartPlayerMessageHandler;
+import net.raphimc.noteblocktool.handler.impl.StopPlayerMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.UnloadMessageHandler;
 import net.raphimc.noteblocktool.message.Message;
-import net.raphimc.noteblocktool.message.response.WorkerReadyMessage;
+import net.raphimc.noteblocktool.message.backend.StatusMessage;
+import net.raphimc.noteblocktool.message.backend.WorkerReadyMessage;
+import net.raphimc.noteblocktool.message.frontend.FrontendPlayerStateMessage;
+import net.raphimc.noteblocktool.message.frontend.LoadFileMessage;
+import net.raphimc.noteblocktool.message.frontend.LoadNbwMessage;
+import net.raphimc.noteblocktool.message.frontend.RenderMessage;
+import net.raphimc.noteblocktool.message.frontend.SetCustomSoundsMessage;
+import net.raphimc.noteblocktool.message.frontend.StartPlayerMessage;
+import net.raphimc.noteblocktool.message.frontend.StopPlayerMessage;
+import net.raphimc.noteblocktool.message.frontend.UnloadMessage;
 import org.teavm.jso.JSExport;
 import org.teavm.jso.dom.events.MessageEvent;
 
@@ -39,22 +52,26 @@ public class NoteBlockTool extends MessageHandler<Message> {
     private static NoteBlockTool INSTANCE;
 
     private final Map<String, MessageHandler<?>> messageHandlers = Map.of(
-        "load-file", new LoadFileMessageHandler(),
-        "load-nbw", new LoadNbwMessageHandler(),
-        "unload", new UnloadMessageHandler(),
-        "render-song", new RenderSongMessageHandler(),
-        "set-custom-sounds", new SetCustomSoundsMessageHandler()
+        LoadFileMessage.TYPE, new LoadFileMessageHandler(),
+        LoadNbwMessage.TYPE, new LoadNbwMessageHandler(),
+        UnloadMessage.TYPE, new UnloadMessageHandler(),
+        RenderMessage.TYPE, new RenderMessageHandler(),
+        StartPlayerMessage.TYPE, new StartPlayerMessageHandler(),
+        StopPlayerMessage.TYPE, new StopPlayerMessageHandler(),
+        FrontendPlayerStateMessage.TYPE, new FrontendPlayerStateMessageHandler(),
+        SetCustomSoundsMessage.TYPE, new SetCustomSoundsMessageHandler()
     );
     private final Thread messageProcessingThread = new Thread(this::processMessages, "Message Processor");
-    private final BlockingQueue<Message> messageQueue = new ArrayBlockingQueue<>(64);
-    private Song song;
+    private final BlockingQueue<Message> messageQueue = new ArrayBlockingQueue<>(1024);
     private SoundProvider bundledSoundProvider;
     private SoundProvider customSoundProvider;
+    private Song song;
+    private NoteBlockPlayer player;
 
     public NoteBlockTool() {
+        super(StatusMessage.CONTEXT_MAIN);
         this.messageProcessingThread.start();
         this.postMessage(WorkerReadyMessage.create());
-        this.postStatusMessage("Waiting for song...");
     }
 
     public static void main(@SuppressWarnings("unused") final String[] args) {
@@ -96,19 +113,11 @@ public class NoteBlockTool extends MessageHandler<Message> {
             try {
                 handler.handleMessage(message);
             } catch (final Throwable e) {
-                this.postErrorMessage("Error processing '" + message.getType() + "': " + e.getMessage());
+                handler.postErrorMessage("Failed to process message '" + message.getType() + "': " + e.getMessage());
             }
         } else {
             this.postErrorMessage("Unhandled message type: " + message.getType());
         }
-    }
-
-    public Song getSong() {
-        return this.song;
-    }
-
-    public void setSong(final Song song) {
-        this.song = song;
     }
 
     public SoundProvider getBundledSoundProvider() {
@@ -125,6 +134,22 @@ public class NoteBlockTool extends MessageHandler<Message> {
 
     public void setCustomSoundProvider(final SoundProvider customSoundProvider) {
         this.customSoundProvider = customSoundProvider;
+    }
+
+    public Song getSong() {
+        return this.song;
+    }
+
+    public void setSong(final Song song) {
+        this.song = song;
+    }
+
+    public NoteBlockPlayer getPlayer() {
+        return this.player;
+    }
+
+    public void setPlayer(final NoteBlockPlayer player) {
+        this.player = player;
     }
 
 }

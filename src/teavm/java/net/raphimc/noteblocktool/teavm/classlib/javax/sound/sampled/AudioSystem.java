@@ -17,12 +17,29 @@
  */
 package net.raphimc.noteblocktool.teavm.classlib.javax.sound.sampled;
 
+import net.raphimc.noteblocktool.message.backend.CreateSourceDataLineMessage;
+import net.raphimc.noteblocktool.util.js.JsNative;
+import net.raphimc.noteblocktool.util.js.MessageChannel;
+import net.raphimc.noteblocktool.util.js.WebAudioSourceDataLine;
+
+import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.IOException;
 import java.io.InputStream;
 
 public class AudioSystem {
+
+    public static SourceDataLine getSourceDataLine(final AudioFormat format) throws LineUnavailableException {
+        if (!JsNative.isCrossOriginIsolated() || !JsNative.SharedArrayBuffer_isAvailable()) {
+            throw new LineUnavailableException("SourceDataLine requires cross-origin isolation. Serve the application with COOP and COEP headers over HTTPS or localhost.");
+        }
+        final MessageChannel channel = new MessageChannel();
+        JsNative.postMessage(CreateSourceDataLineMessage.create(channel.getPort2()), channel.getPort2());
+        return new WebAudioSourceDataLine(channel.getPort1(), format);
+    }
 
     public static AudioInputStream getAudioInputStream(final InputStream stream) throws UnsupportedAudioFileException, IOException {
         throw new UnsupportedAudioFileException("Stream of unsupported format");

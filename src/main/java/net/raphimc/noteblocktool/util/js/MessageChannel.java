@@ -15,15 +15,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.message.request;
+package net.raphimc.noteblocktool.util.js;
 
-import net.raphimc.noteblocktool.message.Message;
+import org.teavm.jso.JSClass;
+import org.teavm.jso.JSObject;
 import org.teavm.jso.JSProperty;
-import org.teavm.jso.file.File;
+import org.teavm.jso.workers.MessagePort;
 
-public interface LoadFileMessage extends Message {
+@JSClass
+public class MessageChannel implements JSObject {
 
     @JSProperty
-    File getFile();
+    public native MessagePort getPort1();
+
+    @JSProperty
+    public native MessagePort getPort2();
 
 }

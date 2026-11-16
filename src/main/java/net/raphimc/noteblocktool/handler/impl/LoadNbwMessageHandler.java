@@ -26,8 +26,9 @@ import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblockrenderer.provider.impl.MapSoundProvider;
 import net.raphimc.noteblocktool.NoteBlockTool;
 import net.raphimc.noteblocktool.handler.MessageHandler;
-import net.raphimc.noteblocktool.message.request.LoadNbwMessage;
-import net.raphimc.noteblocktool.message.response.SongLoadedMessage;
+import net.raphimc.noteblocktool.message.backend.SongLoadedMessage;
+import net.raphimc.noteblocktool.message.backend.StatusMessage;
+import net.raphimc.noteblocktool.message.frontend.LoadNbwMessage;
 import net.raphimc.noteblocktool.util.HttpUtil;
 import net.raphimc.noteblocktool.util.StringUtil;
 import org.teavm.jso.ajax.XMLHttpRequest;
@@ -45,17 +46,21 @@ import java.util.zip.ZipInputStream;
 
 public class LoadNbwMessageHandler extends MessageHandler<LoadNbwMessage> {
 
+    public LoadNbwMessageHandler() {
+        super(StatusMessage.CONTEXT_MAIN);
+    }
+
     @Override
     public void handleMessage(final LoadNbwMessage message) throws Exception {
         final Stopwatch stopwatch = Stopwatch.createStarted();
 
-        this.postStatusMessage("Fetching download url");
+        this.postStatusMessage("Fetching download URL");
         final XMLHttpRequest openRequest = new XMLHttpRequest();
         openRequest.open("GET", HttpUtil.withCorsProxy("https://api.noteblock.world/v1/song/" + message.getId() + "/open", Map.entry("src", "downloadButton")), false);
         openRequest.setResponseType("text");
         openRequest.send();
         if (openRequest.getStatus() != HttpURLConnection.HTTP_OK || openRequest.getResponse() == null) {
-            throw new IOException("Failed to get download url: " + openRequest.getStatus() + " " + openRequest.getResponseText());
+            throw new IOException("Failed to fetch download URL: " + openRequest.getStatus() + " " + openRequest.getResponseText());
         }
         final String downloadUrl = openRequest.getResponseText();
 
@@ -65,7 +70,7 @@ public class LoadNbwMessageHandler extends MessageHandler<LoadNbwMessage> {
         downloadRequest.setResponseType("arraybuffer");
         downloadRequest.send();
         if (downloadRequest.getStatus() != HttpURLConnection.HTTP_OK || downloadRequest.getResponse() == null) {
-            throw new IOException("Failed to download song archive. See console for more details");
+            throw new IOException("Failed to download song archive: HTTP " + downloadRequest.getStatus());
         }
         final byte[] songArchive = new Int8Array((ArrayBuffer) downloadRequest.getResponse()).copyToJavaArray();
 
@@ -104,9 +109,10 @@ public class LoadNbwMessageHandler extends MessageHandler<LoadNbwMessage> {
         songLoadedMessage.setAuthor(song.getAuthor());
         songLoadedMessage.setOriginalAuthor(song.getOriginalAuthor());
         songLoadedMessage.setDescription(song.getDescription());
-        songLoadedMessage.setLength(song.getHumanReadableLength());
+        songLoadedMessage.setHumanReadableLength(song.getHumanReadableLength());
+        songLoadedMessage.setLengthInSeconds(song.getLengthInSeconds());
         songLoadedMessage.setNoteCount(song.getNotes().getNoteCount());
-        songLoadedMessage.setTempo(song.getTempoEvents().getHumanReadableTempoRange());
+        songLoadedMessage.setHumanReadableTempoRange(song.getTempoEvents().getHumanReadableTempoRange());
         songLoadedMessage.setInstruments(SongUtil.getUsedInstruments(song).stream().map(StringUtil::getInstrumentDisplayName).toArray(String[]::new));
         if (song instanceof NbsSong nbsSong) {
             songLoadedMessage.setNbsVersion(JSNumber.valueOf(nbsSong.getVersion()));

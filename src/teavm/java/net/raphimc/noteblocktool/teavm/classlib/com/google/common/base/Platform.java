@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.teavm.classlib.com.google.common.base;
 
-import net.raphimc.noteblocktool.util.JsNative;
+import net.raphimc.noteblocktool.util.js.JsNative;
 
 public class Platform {
 
