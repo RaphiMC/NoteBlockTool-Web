@@ -1,7 +1,7 @@
 <script lang="ts">
     import ArrowRight from "@lucide/svelte/icons/arrow-right";
     import AudioLines from "@lucide/svelte/icons/audio-lines";
-    import CircleAlert from "@lucide/svelte/icons/circle-alert";
+    import CircleExclamationPoint from "@lucide/svelte/icons/circle-exclamation-point";
     import CirclePlay from "@lucide/svelte/icons/circle-play";
     import EighthNotes from "@lucide/svelte/icons/eighth-notes";
     import {onMount} from "svelte";
@@ -37,7 +37,7 @@
 
     {#if appState.workerState === "failed"}
         <section class="state-panel panel card" aria-labelledby="worker-error-title" role="alert">
-            <span class="icon-box bg-error/10 text-error" aria-hidden="true"><CircleAlert /></span>
+            <span class="icon-box bg-error/10 text-error" aria-hidden="true"><CircleExclamationPoint /></span>
             <h2 class="card-title" id="worker-error-title">Worker unavailable</h2>
             <button class="btn btn-primary" type="button" onclick={() => location.reload()}>Reload page</button>
         </section>
