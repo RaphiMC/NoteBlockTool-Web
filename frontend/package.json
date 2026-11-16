@@ -12,24 +12,24 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@lucide/svelte": "1.62.0",
+    "@lucide/svelte": "1.70.0",
     "@sveltejs/vite-plugin-svelte": "7.3.1",
-    "@tailwindcss/vite": "4.3.3",
-    "@tsconfig/svelte": "5.0.8",
-    "@types/node": "26.6.5",
-    "@typescript-eslint/parser": "8.72.1",
+    "@tailwindcss/vite": "4.3.5",
+    "@tsconfig/svelte": "5.0.9",
+    "@types/node": "26.6.6",
+    "@typescript-eslint/parser": "8.72.2",
     "bowser": "2.15.0",
     "daisyui": "5.7.50",
-    "eslint": "10.13.0",
+    "eslint": "10.14.0",
     "prettier": "3.9.10",
     "prettier-plugin-svelte": "4.1.1",
     "prettier-plugin-tailwindcss": "0.8.1",
     "ringbuf.js": "0.4.0",
     "svelte": "5.57.3",
-    "svelte-check": "4.7.7",
-    "svelte-eslint-parser": "1.10.0",
-    "tailwindcss": "4.3.3",
+    "svelte-check": "4.7.8",
+    "svelte-eslint-parser": "1.10.1",
+    "tailwindcss": "4.3.5",
     "typescript": "6.0.3",
-    "vite": "8.3.5"
+    "vite": "8.3.8"
   }
 }

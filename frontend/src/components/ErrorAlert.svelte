@@ -1,5 +1,5 @@
 <script lang="ts">
-    import CircleAlert from "@lucide/svelte/icons/circle-alert";
+    import CircleExclamationPoint from "@lucide/svelte/icons/circle-exclamation-point";
     import X from "@lucide/svelte/icons/x";
 
     let {message = $bindable()}: {message: string | null} = $props();
@@ -7,7 +7,7 @@
 
 {#if message}
     <div class="mb-4 alert flex items-start alert-soft alert-error" role="alert">
-        <CircleAlert />
+        <CircleExclamationPoint />
         <div class="min-w-0 flex-1">
             <strong class="font-semibold">Error</strong>
             <p class="wrap-anywhere whitespace-pre-wrap">{message}</p>
