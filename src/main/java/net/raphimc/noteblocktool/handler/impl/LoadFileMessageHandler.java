@@ -19,7 +19,6 @@ package net.raphimc.noteblocktool.handler.impl;
 
 import com.google.common.base.Stopwatch;
 import net.raphimc.noteblocklib.NoteBlockLib;
-import net.raphimc.noteblocklib.format.SongFormat;
 import net.raphimc.noteblocklib.format.nbs.model.NbsSong;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
@@ -47,7 +46,8 @@ public class LoadFileMessageHandler extends MessageHandler<LoadFileMessage> {
         final byte[] bytes = new Int8Array(new FileReaderSync().readAsArrayBuffer(message.getFile())).copyToJavaArray();
 
         this.postStatusMessage("Parsing song");
-        final Song song = NoteBlockLib.readSong(bytes, SongFormat.NBS, message.getFile().getName());
+        final String fileName = message.getFile().getName();
+        final Song song = NoteBlockLib.readSong(bytes, NoteBlockLib.getFormat(fileName), fileName);
         song.getNotes().removeSilentNotes();
         NoteBlockTool.instance().setSong(song);
 

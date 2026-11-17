@@ -15,20 +15,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.teavm.classlib.net.raphimc.noteblocklib.format.midi;
+package net.raphimc.noteblocktool.teavm.classlib.javax.sound.midi;
 
-import net.raphimc.noteblocklib.format.midi.model.MidiSong;
+public class Patch {
 
-import java.io.InputStream;
+    private final int bank;
+    private final int program;
 
-public class MidiIo {
-
-    public static MidiSong readSong(final InputStream is, final String fileName) {
-        throw new UnsupportedOperationException();
+    public Patch(final int bank, final int program) {
+        this.bank = bank;
+        this.program = program;
     }
 
-    public static MidiSong readSong(final InputStream is, final String fileName, final boolean skipOutOfRangeNotes) {
-        throw new UnsupportedOperationException();
+    public int getBank() {
+        return this.bank;
+    }
+
+    public int getProgram() {
+        return this.program;
     }
 
 }

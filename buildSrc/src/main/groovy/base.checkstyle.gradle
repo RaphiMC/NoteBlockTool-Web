@@ -29,7 +29,9 @@ checkstyle {
                 <module name="AnnotationUseStyle"/>
                 <module name="ArrayTypeStyle"/>
                 <module name="AtclauseOrder"/>
-                <module name="AvoidEscapedUnicodeCharacters"/>
+                <module name="AvoidEscapedUnicodeCharacters">
+                    <property name="allowNonPrintableEscapes" value="true"/>
+                </module>
                 <module name="AvoidModuleImport"/>
                 <module name="AvoidNoArgumentSuperConstructorCall"/>
                 <module name="AvoidStarImport">

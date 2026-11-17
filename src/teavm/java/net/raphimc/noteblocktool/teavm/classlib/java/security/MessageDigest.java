@@ -20,6 +20,7 @@ package net.raphimc.noteblocktool.teavm.classlib.java.security;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.MD5Digest;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 
 public abstract class MessageDigest {

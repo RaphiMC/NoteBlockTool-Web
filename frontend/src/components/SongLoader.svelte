@@ -10,7 +10,7 @@
 <input
     bind:this={fileInput}
     type="file"
-    accept=".nbs"
+    accept=".nbs,.mid,.midi,.txt,.mcsp,.mcsp2"
     onchange={event => {
         if (event.currentTarget.files!.length) {
             loadFiles(Array.from(event.currentTarget.files!));
@@ -22,7 +22,7 @@
     <div class="card-body min-h-96 items-center justify-center gap-4 text-center">
         <span class="icon-box" aria-hidden="true"><Upload /></span>
         <h2 class="card-title">Load a song</h2>
-        <p class="grow-0 text-base-content/60">Drag and drop an .nbs file anywhere, or select one below.</p>
+        <p class="grow-0 text-base-content/60">Drag and drop a song file anywhere, or select one below.</p>
         <button class="btn btn-primary" type="button" onclick={() => fileInput.click()}><FolderOpen />Choose file</button>
     </div>
 </section>

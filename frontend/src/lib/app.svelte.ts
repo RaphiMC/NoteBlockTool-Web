@@ -15,7 +15,7 @@ interface RenderResult {
 
 class AppState {
     workerState = $state<"starting" | "ready" | "failed">("starting");
-    mainStatus = $state("Waiting for action");
+    mainStatus = $state("Loading worker");
     mainWarnings = $state<string[]>([]);
     mainError = $state<string | null>(null);
 
@@ -111,6 +111,7 @@ function handleMessage(data: BackendMessage): void {
             break;
         case "worker-ready":
             state.workerState = "ready";
+            state.mainStatus = "Waiting for action";
             break;
         case "status":
             if (data.context !== "player" || state.playerStarted) {
@@ -153,6 +154,7 @@ function handleMessage(data: BackendMessage): void {
 
 function startWorker(): void {
     state.workerState = "starting";
+    state.mainStatus = "Loading worker";
     let current: Worker;
     try {
         current = new BackendWorker();
@@ -199,13 +201,10 @@ function loadSong(message: LoadMessage): void {
 export function loadFiles(files: readonly File[]): void {
     const [file] = files;
     if (files.length !== 1 || !file) {
-        return showError("Select one .nbs file at a time");
+        return showError("Select one file at a time");
     }
-    if (!/\.nbs$/i.test(file.name)) {
-        return showError("Select a Note Block Studio (.nbs) file");
-    }
-    if (file.size === 0) {
-        return showError("The selected file is empty. Select another .nbs file.");
+    if (!/\.(nbs|mid|midi|txt|mcsp|mcsp2)$/i.test(file.name)) {
+        return showError("Select an .nbs, .mid, .midi, .txt, .mcsp, or .mcsp2 file");
     }
     if (state.songMetadata) {
         unload();

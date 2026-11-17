@@ -66,7 +66,6 @@
             <div>
                 <span class="icon-box mx-auto mb-6"><Upload /></span>
                 <h2 class="text-2xl font-semibold">Drop file to load</h2>
-                <p class="mt-2 text-base-content/60">One .nbs file at a time.</p>
             </div>
         </div>
     </div>
