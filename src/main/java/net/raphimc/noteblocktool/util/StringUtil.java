@@ -22,10 +22,12 @@ import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
+import com.google.common.math.LongMath;
 import net.raphimc.noteblocklib.format.minecraft.MinecraftInstrument;
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
 import net.raphimc.noteblocklib.model.note.Instrument;
 
+import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -64,7 +66,7 @@ public final class StringUtil {
         if (byteCount < 1024) {
             return byteCount + " B";
         }
-        final int exp = (63 - Long.numberOfLeadingZeros(byteCount)) / 10;
+        final int exp = LongMath.log2(byteCount, RoundingMode.FLOOR) / 10;
         return String.format(Locale.ROOT, "%.1f %ciB", byteCount / Math.pow(1024, exp), "KMGTPE".charAt(exp - 1));
     }
 

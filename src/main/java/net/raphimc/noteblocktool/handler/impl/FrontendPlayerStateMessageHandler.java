@@ -22,8 +22,12 @@ import net.raphimc.noteblocktool.NoteBlockTool;
 import net.raphimc.noteblocktool.handler.MessageHandler;
 import net.raphimc.noteblocktool.message.backend.StatusMessage;
 import net.raphimc.noteblocktool.message.frontend.FrontendPlayerStateMessage;
+import net.raphimc.noteblocktool.util.js.Bowser;
+import net.raphimc.noteblocktool.util.js.JsNative;
 
 public class FrontendPlayerStateMessageHandler extends MessageHandler<FrontendPlayerStateMessage> {
+
+    private static final boolean HAS_LOW_LATENCY_FLUSH = Bowser.getParser(JsNative.Navigator_getUserAgent()).isEngine("Blink");
 
     public FrontendPlayerStateMessageHandler() {
         super(StatusMessage.CONTEXT_PLAYER);
@@ -39,7 +43,9 @@ public class FrontendPlayerStateMessageHandler extends MessageHandler<FrontendPl
         if (message.getProgress() != null) {
             player.getMixer().clear();
             player.setProgress(message.getProgress().floatValue());
-            player.getSourceDataLineWriter().getSourceDataLine().flush();
+            if (HAS_LOW_LATENCY_FLUSH) {
+                player.getSourceDataLineWriter().getSourceDataLine().flush();
+            }
         }
         if (message.getVolume() != null) {
             player.getRootMixer().gain().set(message.getVolume().floatValue() / 100F);

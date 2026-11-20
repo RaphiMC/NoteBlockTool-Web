@@ -25,7 +25,7 @@ export class SourceDataLineHost {
                     numberOfInputs: 0,
                     numberOfOutputs: 1,
                     outputChannelCount: [request.channels],
-                    processorOptions: {buffer: request.buffer} satisfies SourceDataLineProcessorOptions,
+                    processorOptions: {audioBuffer: request.audioBuffer, controlBuffer: request.controlBuffer} satisfies SourceDataLineProcessorOptions,
                 });
                 node.onprocessorerror = () => this.handleError(new Error("The source data line processor encountered an unexpected error"));
                 node.connect(this.context.destination);

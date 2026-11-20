@@ -25,6 +25,8 @@ import org.teavm.interop.AsyncCallback;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.JSProperty;
 import org.teavm.jso.core.JSObjects;
+import org.teavm.jso.typedarrays.Atomics;
+import org.teavm.jso.typedarrays.Int8Array;
 import org.teavm.jso.typedarrays.SharedArrayBuffer;
 import org.teavm.jso.workers.MessagePort;
 
@@ -37,7 +39,6 @@ import javax.sound.sampled.SourceDataLine;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.Objects;
 
 public class WebAudioSourceDataLine implements SourceDataLine {
 
@@ -50,7 +51,8 @@ public class WebAudioSourceDataLine implements SourceDataLine {
     private PcmAudioFormat pcmFormat;
     private int bufferSize;
     private int waitMillis;
-    private RingBuffer buffer;
+    private RingBuffer audioBuffer;
+    private Int8Array controlSignal;
     private volatile boolean open;
     private volatile boolean running;
     private volatile boolean flushing;
@@ -80,16 +82,21 @@ public class WebAudioSourceDataLine implements SourceDataLine {
         if (bufferSize <= 0) {
             throw new IllegalArgumentException("Buffer size must be > 0: " + bufferSize);
         }
-        this.checkError();
+        if (bufferSize % format.getFrameSize() != 0) {
+            throw new IllegalArgumentException("Buffer size must represent an integral number of frames (" + bufferSize + " bytes, frameSize = " + format.getFrameSize() + " bytes)");
+        }
         final PcmAudioFormat pcmFormat = JavaAudioFormatUtil.getPcmAudioFormat(format);
         if (format.getFrameSize() != pcmFormat.bytesPerFrame() || format.getFrameRate() != format.getSampleRate()) {
-            throw new IllegalArgumentException("Unsupported PCM frame format");
+            throw new IllegalArgumentException("Unsupported PCM frame format: " + format);
         }
-        final SharedArrayBuffer buffer = RingBuffer.getStorageForCapacity(pcmFormat.byteCountToSampleCount(bufferSize), JsNative.Float32Array_getConstructor());
+        this.checkError();
+        final SharedArrayBuffer audioBuffer = RingBuffer.getStorageForCapacity(pcmFormat.byteCountToSampleCount(bufferSize), JsNative.Float32Array_getConstructor());
+        final SharedArrayBuffer controlBuffer = JsNative.SharedArrayBuffer_create(1);
         final OpenRequest request = OpenRequest.create();
         request.setSampleRate(format.getSampleRate());
         request.setChannels(format.getChannels());
-        request.setBuffer(buffer);
+        request.setAudioBuffer(audioBuffer);
+        request.setControlBuffer(controlBuffer);
         final OpenResponse response;
         try {
             response = this.request(request);
@@ -102,7 +109,8 @@ public class WebAudioSourceDataLine implements SourceDataLine {
         this.pcmFormat = pcmFormat;
         this.bufferSize = bufferSize;
         this.waitMillis = Math.clamp(Math.round(this.pcmFormat.byteCountToMillis(this.bufferSize) / 4F), 1, 25);
-        this.buffer = new RingBuffer(buffer, JsNative.Float32Array_getConstructor());
+        this.audioBuffer = new RingBuffer(audioBuffer, JsNative.Float32Array_getConstructor());
+        this.controlSignal = new Int8Array(controlBuffer);
         this.open = true;
     }
 
@@ -118,7 +126,21 @@ public class WebAudioSourceDataLine implements SourceDataLine {
 
     @Override
     public int write(final byte[] b, final int off, final int len) {
-        Objects.checkFromIndexSize(off, len, b.length);
+        if (len == 0) {
+            return 0;
+        }
+        if (len < 0) {
+            throw new IllegalArgumentException("illegal len: " + len);
+        }
+        if (len % this.getFormat().getFrameSize() != 0) {
+            throw new IllegalArgumentException("illegal request to write non-integral number of frames (" + len + " bytes, frameSize = " + this.getFormat().getFrameSize() + " bytes)");
+        }
+        if (off < 0) {
+            throw new ArrayIndexOutOfBoundsException(off);
+        }
+        if ((long) off + (long) len > (long) b.length) {
+            throw new ArrayIndexOutOfBoundsException(b.length);
+        }
         this.checkError();
         if (!this.open) {
             return 0;
@@ -130,7 +152,7 @@ public class WebAudioSourceDataLine implements SourceDataLine {
         int writtenSampleCount = 0;
         while (writtenSampleCount < totalSampleCount && this.open && version == this.operationVersion) {
             if (!this.flushing) {
-                final int sampleCount = Math.min(Math.min(totalSampleCount - writtenSampleCount, samples.length), this.buffer.availableWrite());
+                final int sampleCount = Math.min(Math.min(totalSampleCount - writtenSampleCount, samples.length), this.audioBuffer.availableWrite());
                 if (sampleCount > 0) {
                     try {
                         for (int i = 0; i < sampleCount; i++) {
@@ -139,7 +161,7 @@ public class WebAudioSourceDataLine implements SourceDataLine {
                     } catch (final IOException e) {
                         throw new UncheckedIOException(e);
                     }
-                    writtenSampleCount += this.buffer.push(samples, sampleCount, 0);
+                    writtenSampleCount += this.audioBuffer.push(samples, sampleCount, 0);
                     continue;
                 }
                 if (!this.running) {
@@ -157,8 +179,8 @@ public class WebAudioSourceDataLine implements SourceDataLine {
     public void drain() {
         this.checkError();
         final int version = this.operationVersion;
-        while (this.open && this.running && version == this.operationVersion && this.buffer.availableRead() > 0) {
-            final int remainingMillis = Math.round(this.pcmFormat.format().sampleCountToMillis(this.buffer.availableRead()));
+        while (this.open && this.running && version == this.operationVersion && this.audioBuffer.availableRead() > 0) {
+            final int remainingMillis = Math.round(this.pcmFormat.format().sampleCountToMillis(this.audioBuffer.availableRead()));
             if (!this.awaitBufferProgress(Math.clamp(remainingMillis, 1, this.waitMillis))) {
                 break;
             }
@@ -249,7 +271,7 @@ public class WebAudioSourceDataLine implements SourceDataLine {
     @Override
     public int available() {
         this.checkError();
-        return this.open ? this.pcmFormat.sampleCountToByteCount(this.buffer.availableWrite()) : 0;
+        return this.open ? this.pcmFormat.sampleCountToByteCount(this.audioBuffer.availableWrite()) : 0;
     }
 
     @Override
@@ -346,7 +368,10 @@ public class WebAudioSourceDataLine implements SourceDataLine {
         this.pendingResponse = callback;
         switch (request.getType()) {
             case OpenRequest.TYPE, CloseRequest.TYPE -> this.hostPort.postMessage(request);
-            default -> this.processorPort.postMessage(request);
+            default -> {
+                Atomics.store(this.controlSignal, 0, (byte) 1);
+                this.processorPort.postMessage(request);
+            }
         }
     }
 
@@ -400,7 +425,10 @@ public class WebAudioSourceDataLine implements SourceDataLine {
         void setChannels(final int channels);
 
         @JSProperty
-        void setBuffer(final SharedArrayBuffer buffer);
+        void setAudioBuffer(final SharedArrayBuffer audioBuffer);
+
+        @JSProperty
+        void setControlBuffer(final SharedArrayBuffer controlBuffer);
 
     }
 

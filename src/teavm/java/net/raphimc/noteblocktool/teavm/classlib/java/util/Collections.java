@@ -18,13 +18,8 @@
 package net.raphimc.noteblocktool.teavm.classlib.java.util;
 
 import java.util.NavigableSet;
-import java.util.SortedSet;
 
 public class Collections {
-
-    public static <T> SortedSet<T> unmodifiableSortedSet(final SortedSet<T> s) {
-        return s;
-    }
 
     public static <T> NavigableSet<T> unmodifiableNavigableSet(final NavigableSet<T> s) {
         return s;

@@ -23,9 +23,6 @@ public interface Line extends AutoCloseable {
 
     void open() throws LineUnavailableException;
 
-    @Override
-    void close();
-
     boolean isOpen();
 
 }

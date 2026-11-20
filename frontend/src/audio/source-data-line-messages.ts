@@ -7,7 +7,8 @@ export interface OpenRequest extends Request {
     type: "open";
     sampleRate: number;
     channels: number;
-    buffer: SharedArrayBuffer;
+    audioBuffer: SharedArrayBuffer;
+    controlBuffer: SharedArrayBuffer;
 }
 
 export interface StartRequest extends Request {
@@ -41,4 +42,4 @@ export interface ErrorResponse extends Response {
 
 export type SourceDataLineRequest = OpenRequest | CloseRequest;
 export type SourceDataLineProcessorRequest = StartRequest | FlushRequest | StopRequest;
-export type SourceDataLineProcessorOptions = Pick<OpenRequest, "buffer">;
+export type SourceDataLineProcessorOptions = Pick<OpenRequest, "audioBuffer" | "controlBuffer">;

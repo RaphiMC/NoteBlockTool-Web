@@ -21,6 +21,7 @@ import org.teavm.jso.JSBody;
 import org.teavm.jso.JSByRef;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.file.File;
+import org.teavm.jso.typedarrays.SharedArrayBuffer;
 
 @SuppressWarnings("checkstyle:MethodName")
 public final class JsNative {
@@ -43,6 +44,11 @@ public final class JsNative {
     @JSBody(params = "file", script = "return file.webkitRelativePath;")
     public static native String File_getWebkitRelativePath(final File file);
 
+    // TODO: Use Navigator.getUserAgent(); when the next TeaVM version is released
+    @Deprecated
+    @JSBody(script = "return navigator.userAgent;")
+    public static native String Navigator_getUserAgent();
+
     @JSBody(script = "return Float32Array;")
     public static native JSObject Float32Array_getConstructor();
 
@@ -51,5 +57,10 @@ public final class JsNative {
 
     @JSBody(script = "return typeof SharedArrayBuffer === 'function';")
     public static native boolean SharedArrayBuffer_isAvailable();
+
+    // TODO: Use new SharedArrayBuffer(byteLength) when the next TeaVM version is released
+    @Deprecated
+    @JSBody(params = "byteLength", script = "return new SharedArrayBuffer(byteLength);")
+    public static native SharedArrayBuffer SharedArrayBuffer_create(final int byteLength);
 
 }

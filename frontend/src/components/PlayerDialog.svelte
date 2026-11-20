@@ -7,13 +7,15 @@
     import Volume2 from "@lucide/svelte/icons/volume-2";
     import VolumeX from "@lucide/svelte/icons/volume-x";
     import X from "@lucide/svelte/icons/x";
-    import {getParser} from "bowser";
+    import Bowser from "bowser";
     import ErrorAlert from "./ErrorAlert.svelte";
     import StatusLine from "./StatusLine.svelte";
     import WarningList from "./WarningList.svelte";
     import {closePlayerDialog, startPlayer, state as appState, stopPlayer, updatePlayerState} from "../lib/app.svelte";
     import {formatNumber, formatProgress} from "../lib/format";
     import type {Resampler} from "../lib/messages";
+
+    const USE_LARGE_AUDIO_BUFFER = Bowser.getParser(navigator.userAgent).isEngine("Gecko"); // Use a large buffer to absorb Firefox GC pauses with large live heaps
 
     interface Settings {
         volume: number;
@@ -25,7 +27,7 @@
     }
 
     function defaultSettings(): Settings {
-        return {volume: 90, timingJitter: true, resampler: "linear", maxSimultaneousSoundCount: 2048, preRenderCacheSize: 512, audioBufferMillis: getParser(navigator.userAgent).isEngine("Gecko") ? 500 : 100};
+        return {volume: 90, timingJitter: true, resampler: "linear", maxSimultaneousSoundCount: 2048, preRenderCacheSize: 512, audioBufferMillis: USE_LARGE_AUDIO_BUFFER ? 500 : 100};
     }
 
     let settings = $state(defaultSettings());
@@ -42,10 +44,10 @@
         session.metadata = new MediaMetadata({title: appState.songMetadata!.title, artist: appState.songMetadata!.author ?? ""});
         session.setActionHandler("play", () => updatePlayerState({paused: false}));
         session.setActionHandler("pause", () => updatePlayerState({paused: true}));
-        const seek = (position: number) => updatePlayerState({progress: Math.min(Math.max((position / appState.songMetadata!.lengthInSeconds) * 100, 0), 100)});
-        session.setActionHandler("seekto", ({seekTime}) => seek(seekTime!));
-        session.setActionHandler("seekbackward", ({seekOffset}) => seek(playerPositionInSeconds - (seekOffset ?? 10)));
-        session.setActionHandler("seekforward", ({seekOffset}) => seek(playerPositionInSeconds + (seekOffset ?? 10)));
+        const seekToSeconds = (position: number) => updatePlayerState({progress: Math.min(Math.max((position / appState.songMetadata!.lengthInSeconds) * 100, 0), 100)});
+        session.setActionHandler("seekto", ({seekTime}) => seekToSeconds(seekTime!));
+        session.setActionHandler("seekbackward", ({seekOffset}) => seekToSeconds(playerPositionInSeconds - (seekOffset ?? 10)));
+        session.setActionHandler("seekforward", ({seekOffset}) => seekToSeconds(playerPositionInSeconds + (seekOffset ?? 10)));
         return () => {
             session.setActionHandler("play", null);
             session.setActionHandler("pause", null);

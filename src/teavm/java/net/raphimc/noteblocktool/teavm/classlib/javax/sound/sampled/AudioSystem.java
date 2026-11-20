@@ -33,8 +33,11 @@ import java.io.InputStream;
 public class AudioSystem {
 
     public static SourceDataLine getSourceDataLine(final AudioFormat format) throws LineUnavailableException {
-        if (!JsNative.isCrossOriginIsolated() || !JsNative.SharedArrayBuffer_isAvailable()) {
-            throw new LineUnavailableException("SourceDataLine requires cross-origin isolation. Serve the application with COOP and COEP headers over HTTPS or localhost.");
+        if (!JsNative.isCrossOriginIsolated()) {
+            throw new LineUnavailableException("SourceDataLine requires cross-origin isolation. See https://developer.mozilla.org/docs/Web/API/Window/crossOriginIsolated for more information.");
+        }
+        if (!JsNative.SharedArrayBuffer_isAvailable()) {
+            throw new LineUnavailableException("SourceDataLine requires SharedArrayBuffer, which is unavailable in this environment");
         }
         final MessageChannel channel = new MessageChannel();
         JsNative.postMessage(CreateSourceDataLineMessage.create(channel.getPort2()), channel.getPort2());

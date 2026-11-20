@@ -5,7 +5,7 @@ plugins {
     id "java-library"
     id "base.base-conventions"
     id "base.checkstyle"
-    id "org.teavm" version "0.17.0-dev-2"
+    id "org.teavm" version "0.17.0-dev-7"
 }
 
 checkstyle {
@@ -44,11 +44,11 @@ repositories {
 }
 
 dependencies {
-    teavmCompileOnly "org.teavm:teavm-core:0.17.0-dev-2"
+    teavmCompileOnly "org.teavm:teavm-core:0.17.0-dev-7"
     teavmImplementation "org.bouncycastle:bcprov-jdk18on:1.86"
 
     implementation "com.google.guava:guava:33.7.2-jre"
-    implementation "net.raphimc:note-block-renderer:1.0.0-20261117.194841-13"
+    implementation "net.raphimc:note-block-renderer:1.0.0-20261119.230058-14"
 }
 
 teavm {
@@ -59,6 +59,7 @@ teavm {
         def production = providers.gradleProperty("environment").map { it == "prod" }.orElse(false)
         targetFileName = "backend.js"
         moduleType = JSModuleType.ES2015
+        asyncEnabled = true
         optimization = production.map { it ? OptimizationLevel.AGGRESSIVE : OptimizationLevel.NONE }
         obfuscated = production
     }

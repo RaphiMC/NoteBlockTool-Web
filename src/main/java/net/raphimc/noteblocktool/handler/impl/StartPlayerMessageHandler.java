@@ -92,6 +92,18 @@ public class StartPlayerMessageHandler extends MessageHandler<StartPlayerMessage
         @Override
         public AudioBuffer tick() {
             final AudioBuffer buffer = super.tick();
+            this.postPlayerStateMessage();
+            Thread.yield(); // Give TeaVM a chance to process the message queue to keep the controls responsive
+            return buffer;
+        }
+
+        @Override
+        public void setPaused(final boolean paused) {
+            super.setPaused(paused);
+            this.postPlayerStateMessage();
+        }
+
+        private void postPlayerStateMessage() {
             final BackendPlayerStateMessage backendPlayerStateMessage = BackendPlayerStateMessage.create();
             backendPlayerStateMessage.setPaused(this.isPaused());
             backendPlayerStateMessage.setProgress(this.getProgress());
@@ -99,8 +111,6 @@ public class StartPlayerMessageHandler extends MessageHandler<StartPlayerMessage
             backendPlayerStateMessage.setActiveSoundCount(this.getMixer().getMixedSourceCount());
             backendPlayerStateMessage.setProcessingLoad(this.getSourceDataLineWriter().getProcessingLoad());
             StartPlayerMessageHandler.this.postMessage(backendPlayerStateMessage);
-            Thread.yield(); // Give TeaVM a chance to process the message queue to keep the controls responsive
-            return buffer;
         }
 
     }

@@ -65,7 +65,7 @@ public class RenderMessageHandler extends MessageHandler<RenderMessage> {
     }
 
     @Override
-    public void handleMessage(final RenderMessage message) throws IOException {
+    public void handleMessage(final RenderMessage message) throws IOException, InterruptedException {
         final Stopwatch stopwatch = Stopwatch.createStarted();
 
         this.postStatusMessage("Initializing renderer");
