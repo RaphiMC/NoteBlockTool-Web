@@ -3,9 +3,9 @@
     import ErrorAlert from "./ErrorAlert.svelte";
     import StatusLine from "./StatusLine.svelte";
     import WarningList from "./WarningList.svelte";
-    import {closeRenderDialog, renderSong, state as appState} from "../lib/app.svelte";
+    import {closeRenderDialog, startRender, state as appState} from "../lib/app.svelte";
     import {formatProgress} from "../lib/format";
-    import type {AudioFormat, BitRateEncoding, Limiter, RenderMessage, Resampler, WavEncoding} from "../lib/messages";
+    import type {AudioFormat, BitRateEncoding, Limiter, Resampler, StartRenderMessage, WavEncoding} from "../lib/messages";
 
     interface Settings {
         format: AudioFormat;
@@ -61,7 +61,7 @@
     function submit(event: SubmitEvent): void {
         event.preventDefault();
         const base = {sampleRate: settings.sampleRate, stereo: settings.stereo};
-        let audioFileOptions: RenderMessage["audioFileOptions"];
+        let audioFileOptions: StartRenderMessage["audioFileOptions"];
         switch (settings.format) {
             case "wav":
                 audioFileOptions = {format: "wav", ...base, encoding: settings.wavEncoding};
@@ -80,8 +80,8 @@
                 audioFileOptions = {format: "ogg-opus", ...base, encoding: settings.oggOpusEncoding, bitRate: settings.oggOpusBitRate};
                 break;
         }
-        renderSong({
-            type: "render",
+        startRender({
+            type: "start-render",
             audioFileOptions,
             playbackOptions: {volume: settings.volume, timingJitter: settings.timingJitter},
             rendererOptions: {resampler: settings.resampler, limiter: settings.limiter},
@@ -92,17 +92,7 @@
 </script>
 
 {#if appState.renderDialogOpen}
-    <dialog
-        {@attach modal}
-        class="options-dialog modal bg-neutral/80 p-4 backdrop-blur-sm"
-        aria-labelledby="render-dialog-title"
-        aria-describedby="render-song-name"
-        oncancel={event => {
-            if (appState.rendering) {
-                event.preventDefault();
-            }
-        }}
-        onclose={closeRenderDialog}>
+    <dialog {@attach modal} class="options-dialog modal bg-neutral/80 p-4 backdrop-blur-sm" aria-labelledby="render-dialog-title" aria-describedby="render-song-name" onclose={closeRenderDialog}>
         <div class="modal-box">
             <header class="dialog-header">
                 <div class="min-w-0">
@@ -110,14 +100,14 @@
                     <p class="truncate text-base-content/60" id="render-song-name">{appState.songMetadata!.title}</p>
                 </div>
                 <form method="dialog">
-                    <button class="btn btn-square border-base-content/20 btn-outline" type="submit" disabled={appState.rendering} aria-label="Close render dialog"><X /></button>
+                    <button class="btn btn-square border-base-content/20 btn-outline" type="submit" aria-label="Close render dialog"><X /></button>
                 </form>
             </header>
             <form class="dialog-form" onsubmit={submit}>
                 <div class="dialog-body">
                     <ErrorAlert bind:message={appState.renderError} />
                     <WarningList warnings={appState.renderWarnings} />
-                    <fieldset class="dialog-options space-y-4" disabled={appState.rendering}>
+                    <fieldset class="dialog-options space-y-4" disabled={appState.renderStarted}>
                         <legend class="sr-only">Render options</legend>
                         <fieldset class="fieldset">
                             <legend class="fieldset-legend">Audio file</legend>
@@ -294,13 +284,13 @@
                         <button
                             class="btn btn-secondary"
                             type="button"
-                            disabled={appState.rendering}
+                            disabled={appState.renderStarted}
                             onclick={() => {
                                 settings = defaultSettings();
                             }}>
                             Reset defaults
                         </button>
-                        <button class="btn btn-primary" type="submit" disabled={appState.rendering}>{appState.rendering ? "Rendering…" : "Render"}</button>
+                        <button class="btn btn-primary" type="submit" disabled={appState.renderStarted}>Render</button>
                     </div>
                 </footer>
             </form>

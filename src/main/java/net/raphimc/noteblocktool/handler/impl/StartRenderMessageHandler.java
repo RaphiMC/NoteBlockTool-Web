@@ -47,7 +47,7 @@ import net.raphimc.noteblocktool.handler.MessageHandler;
 import net.raphimc.noteblocktool.message.backend.RenderFinishedMessage;
 import net.raphimc.noteblocktool.message.backend.RenderProgressMessage;
 import net.raphimc.noteblocktool.message.backend.StatusMessage;
-import net.raphimc.noteblocktool.message.frontend.RenderMessage;
+import net.raphimc.noteblocktool.message.frontend.StartRenderMessage;
 import net.raphimc.noteblocktool.util.StringUtil;
 import org.concentus.OpusSignal;
 
@@ -58,14 +58,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class RenderMessageHandler extends MessageHandler<RenderMessage> {
+public class StartRenderMessageHandler extends MessageHandler<StartRenderMessage> {
 
-    public RenderMessageHandler() {
+    public StartRenderMessageHandler() {
         super(StatusMessage.CONTEXT_RENDER);
     }
 
     @Override
-    public void handleMessage(final RenderMessage message) throws IOException, InterruptedException {
+    public void handleMessage(final StartRenderMessage message) throws IOException {
         final Stopwatch stopwatch = Stopwatch.createStarted();
 
         this.postStatusMessage("Initializing renderer");
@@ -99,28 +99,38 @@ public class RenderMessageHandler extends MessageHandler<RenderMessage> {
             this.postMessage(RenderProgressMessage.create(progress));
         }, message.getAdvancedOptions().getPreRenderCacheSize() * 1024L * 1024L);
 
-        this.postStatusMessage("Rendering song");
-        final AudioBuffer buffer = renderer.renderFully(progress -> {
-            this.postMessage(RenderProgressMessage.create(progress));
-        }, message.getPlaybackOptions().getVolume(), NoteBlockRenderer.Limiter.valueOf(message.getRendererOptions().getLimiter().toUpperCase(Locale.ROOT)));
+        final Thread renderTask = new Thread(() -> {
+            try {
+                this.postStatusMessage("Rendering song");
+                final AudioBuffer buffer = renderer.renderFully(progress -> {
+                    this.postMessage(RenderProgressMessage.create(progress));
+                    Thread.yield(); // Give TeaVM a chance to process the message queue to keep the controls responsive
+                }, message.getPlaybackOptions().getVolume(), NoteBlockRenderer.Limiter.valueOf(message.getRendererOptions().getLimiter().toUpperCase(Locale.ROOT)));
 
-        this.postStatusMessage("Encoding audio");
-        final RenderFinishedMessage renderFinishedMessage = encodeAudio(NoteBlockTool.instance().getSong(), buffer, message.getAudioFileOptions(), progress -> {
-            this.postMessage(RenderProgressMessage.create(progress));
-        });
-        this.postMessage(renderFinishedMessage);
-
-        this.postStatusMessage("Rendering finished in " + stopwatch);
+                this.postStatusMessage("Encoding audio");
+                final RenderFinishedMessage renderFinishedMessage = encodeAudio(NoteBlockTool.instance().getSong(), buffer, message.getAudioFileOptions(), progress -> {
+                    this.postMessage(RenderProgressMessage.create(progress));
+                    Thread.yield(); // Give TeaVM a chance to process the message queue to keep the controls responsive
+                });
+                this.postMessage(renderFinishedMessage);
+                this.postStatusMessage("Rendering finished in " + stopwatch);
+            } catch (final InterruptedException _) {
+            } catch (final Throwable e) {
+                this.postErrorMessage("Failed to process message '" + message.getType() + "': " + e.getMessage());
+            }
+        }, "Render Task");
+        NoteBlockTool.instance().setRenderTask(renderTask);
+        renderTask.start();
     }
 
-    private static RenderFinishedMessage encodeAudio(final Song song, final AudioBuffer buffer, final RenderMessage.AudioFileOptions audioFileOptions, final FloatConsumer progressConsumer) throws IOException {
+    private static RenderFinishedMessage encodeAudio(final Song song, final AudioBuffer buffer, final StartRenderMessage.AudioFileOptions audioFileOptions, final FloatConsumer progressConsumer) throws IOException, InterruptedException {
         final RenderFinishedMessage renderFinishedMessage = RenderFinishedMessage.create();
         final SeekableByteArrayOutputStream output = new SeekableByteArrayOutputStream();
         try (AudioOutputStream audioOutputStream = switch (audioFileOptions.getFormat()) {
             case "wav" -> {
                 renderFinishedMessage.setFileName(song.getTitleOrFileName() + ".wav");
                 renderFinishedMessage.setMimeType("audio/wav");
-                final RenderMessage.WavAudioFileOptions wavAudioFileOptions = (RenderMessage.WavAudioFileOptions) audioFileOptions;
+                final StartRenderMessage.WavAudioFileOptions wavAudioFileOptions = (StartRenderMessage.WavAudioFileOptions) audioFileOptions;
                 final PcmSampleEncoding encoding = switch (wavAudioFileOptions.getEncoding()) {
                     case "u8" -> PcmSampleEncoding.U8;
                     case "s16le" -> PcmSampleEncoding.S16_LE;
@@ -134,14 +144,14 @@ public class RenderMessageHandler extends MessageHandler<RenderMessage> {
             case "flac" -> {
                 renderFinishedMessage.setFileName(song.getTitleOrFileName() + ".flac");
                 renderFinishedMessage.setMimeType("audio/flac");
-                final RenderMessage.FlacAudioFileOptions flacAudioFileOptions = (RenderMessage.FlacAudioFileOptions) audioFileOptions;
+                final StartRenderMessage.FlacAudioFileOptions flacAudioFileOptions = (StartRenderMessage.FlacAudioFileOptions) audioFileOptions;
                 final FlacAudioOutputStream.Encoding encoding = new FlacAudioOutputStream.Encoding(flacAudioFileOptions.getBitsPerSample(), flacAudioFileOptions.getCompressionLevel());
                 yield new FlacAudioOutputStream(new SeekableBufferedOutputStream(output), buffer.format(), encoding, getVorbisAudioTags(song));
             }
             case "mp3" -> {
                 renderFinishedMessage.setFileName(song.getTitleOrFileName() + ".mp3");
                 renderFinishedMessage.setMimeType("audio/mpeg");
-                final RenderMessage.Mp3AudioFileOptions mp3AudioFileOptions = (RenderMessage.Mp3AudioFileOptions) audioFileOptions;
+                final StartRenderMessage.Mp3AudioFileOptions mp3AudioFileOptions = (StartRenderMessage.Mp3AudioFileOptions) audioFileOptions;
                 final Mp3AudioOutputStream.Encoding encoding = switch (mp3AudioFileOptions.getEncoding()) {
                     case "cbr" -> Mp3AudioOutputStream.Encoding.cbr(mp3AudioFileOptions.getBitRate());
                     case "abr" -> Mp3AudioOutputStream.Encoding.abr(mp3AudioFileOptions.getBitRate());
@@ -154,7 +164,7 @@ public class RenderMessageHandler extends MessageHandler<RenderMessage> {
             case "ogg-opus" -> {
                 renderFinishedMessage.setFileName(song.getTitleOrFileName() + ".opus");
                 renderFinishedMessage.setMimeType("audio/ogg");
-                final RenderMessage.OggOpusAudioFileOptions oggOpusAudioFileOptions = (RenderMessage.OggOpusAudioFileOptions) audioFileOptions;
+                final StartRenderMessage.OggOpusAudioFileOptions oggOpusAudioFileOptions = (StartRenderMessage.OggOpusAudioFileOptions) audioFileOptions;
                 final OggOpusAudioOutputStream.Encoding encoding = switch (oggOpusAudioFileOptions.getEncoding()) {
                     case "cbr" -> OggOpusAudioOutputStream.Encoding.cbr(oggOpusAudioFileOptions.getBitRate());
                     case "abr" -> OggOpusAudioOutputStream.Encoding.abr(oggOpusAudioFileOptions.getBitRate());
@@ -170,6 +180,9 @@ public class RenderMessageHandler extends MessageHandler<RenderMessage> {
                 final int batchSize = Math.min(samplesPerBatch, buffer.sampleCount() - i);
                 audioOutputStream.write(buffer.samples(), i, batchSize);
                 progressConsumer.accept(((float) (i + batchSize) / buffer.sampleCount()) * 100F);
+                if (Thread.interrupted()) {
+                    throw new InterruptedException();
+                }
             }
         }
         final byte[] audioBytes = output.toByteArray();

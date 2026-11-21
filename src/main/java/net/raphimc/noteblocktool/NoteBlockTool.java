@@ -24,10 +24,11 @@ import net.raphimc.noteblocktool.handler.MessageHandler;
 import net.raphimc.noteblocktool.handler.impl.FrontendPlayerStateMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.LoadFileMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.LoadNbwMessageHandler;
-import net.raphimc.noteblocktool.handler.impl.RenderMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.SetCustomSoundsMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.StartPlayerMessageHandler;
+import net.raphimc.noteblocktool.handler.impl.StartRenderMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.StopPlayerMessageHandler;
+import net.raphimc.noteblocktool.handler.impl.StopRenderMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.UnloadMessageHandler;
 import net.raphimc.noteblocktool.message.Message;
 import net.raphimc.noteblocktool.message.backend.StatusMessage;
@@ -35,10 +36,11 @@ import net.raphimc.noteblocktool.message.backend.WorkerReadyMessage;
 import net.raphimc.noteblocktool.message.frontend.FrontendPlayerStateMessage;
 import net.raphimc.noteblocktool.message.frontend.LoadFileMessage;
 import net.raphimc.noteblocktool.message.frontend.LoadNbwMessage;
-import net.raphimc.noteblocktool.message.frontend.RenderMessage;
 import net.raphimc.noteblocktool.message.frontend.SetCustomSoundsMessage;
 import net.raphimc.noteblocktool.message.frontend.StartPlayerMessage;
+import net.raphimc.noteblocktool.message.frontend.StartRenderMessage;
 import net.raphimc.noteblocktool.message.frontend.StopPlayerMessage;
+import net.raphimc.noteblocktool.message.frontend.StopRenderMessage;
 import net.raphimc.noteblocktool.message.frontend.UnloadMessage;
 import org.teavm.jso.JSExport;
 import org.teavm.jso.dom.events.MessageEvent;
@@ -55,7 +57,8 @@ public class NoteBlockTool extends MessageHandler<Message> {
         LoadFileMessage.TYPE, new LoadFileMessageHandler(),
         LoadNbwMessage.TYPE, new LoadNbwMessageHandler(),
         UnloadMessage.TYPE, new UnloadMessageHandler(),
-        RenderMessage.TYPE, new RenderMessageHandler(),
+        StartRenderMessage.TYPE, new StartRenderMessageHandler(),
+        StopRenderMessage.TYPE, new StopRenderMessageHandler(),
         StartPlayerMessage.TYPE, new StartPlayerMessageHandler(),
         StopPlayerMessage.TYPE, new StopPlayerMessageHandler(),
         FrontendPlayerStateMessage.TYPE, new FrontendPlayerStateMessageHandler(),
@@ -66,6 +69,7 @@ public class NoteBlockTool extends MessageHandler<Message> {
     private SoundProvider bundledSoundProvider;
     private SoundProvider customSoundProvider;
     private Song song;
+    private Thread renderTask;
     private NoteBlockPlayer player;
 
     public NoteBlockTool() {
@@ -142,6 +146,14 @@ public class NoteBlockTool extends MessageHandler<Message> {
 
     public void setSong(final Song song) {
         this.song = song;
+    }
+
+    public Thread getRenderTask() {
+        return this.renderTask;
+    }
+
+    public void setRenderTask(final Thread renderTask) {
+        this.renderTask = renderTask;
     }
 
     public NoteBlockPlayer getPlayer() {

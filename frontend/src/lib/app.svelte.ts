@@ -1,5 +1,5 @@
 import BackendWorker from "../workers/backend.worker?worker";
-import type {BackendMessage, BackendPlayerStateMessage, FrontendPlayerStateMessage, LoadMessage, MessageContext, RenderFinishedMessage, RenderMessage, SetCustomSoundsMessage, SongLoadedMessage, StartPlayerMessage, StopPlayerMessage} from "./messages";
+import type {BackendMessage, BackendPlayerStateMessage, FrontendPlayerStateMessage, LoadMessage, MessageContext, RenderFinishedMessage, SetCustomSoundsMessage, SongLoadedMessage, StartPlayerMessage, StartRenderMessage, StopPlayerMessage, StopRenderMessage} from "./messages";
 import {SourceDataLineHost} from "../audio/source-data-line";
 
 interface CustomSoundsDirectory {
@@ -27,7 +27,7 @@ class AppState {
     renderStatus = $state("Waiting for action");
     renderWarnings = $state<string[]>([]);
     renderError = $state<string | null>(null);
-    rendering = $state(false);
+    renderStarted = $state(false);
     renderProgress = $state(0);
     renderResult = $state<RenderResult | null>(null);
 
@@ -48,7 +48,6 @@ function showError(message: string, context: MessageContext = "main"): void {
 }
 
 function clearRender(): void {
-    state.rendering = false;
     if (state.renderResult) {
         URL.revokeObjectURL(state.renderResult.url);
     }
@@ -65,6 +64,7 @@ function returnToEmpty(): void {
 }
 
 function stopWorker(): void {
+    state.renderStarted = false;
     state.playerStarted = false;
     state.playerState = null;
     worker?.terminate();
@@ -84,16 +84,11 @@ function failLoading(message: string): void {
     showError(message);
 }
 
-function failRendering(message: string): void {
-    state.rendering = false;
-    showError(message, "render");
-}
-
 function finishRendering({fileName, fileSize, data, mimeType}: RenderFinishedMessage): void {
+    state.renderStarted = false;
     const blob = new Blob([data], {type: mimeType});
     state.renderResult = {url: URL.createObjectURL(blob), fileName, fileSize};
     state.renderProgress = 100;
-    state.rendering = false;
 }
 
 function handleMessage(data: BackendMessage): void {
@@ -122,7 +117,9 @@ function handleMessage(data: BackendMessage): void {
             state[`${data.context}Warnings`].push(data.message);
             break;
         case "render-progress":
-            state.renderProgress = data.progress;
+            if (state.renderStarted) {
+                state.renderProgress = data.progress;
+            }
             break;
         case "render-finished":
             try {
@@ -130,7 +127,7 @@ function handleMessage(data: BackendMessage): void {
             } catch (error) {
                 console.error("Failed to prepare the audio download", error);
                 clearRender();
-                failRendering("Failed to prepare the audio download");
+                showError("Failed to prepare the audio download", "render");
             }
             break;
         case "song-loaded":
@@ -140,8 +137,6 @@ function handleMessage(data: BackendMessage): void {
         case "error":
             if (data.context === "main" && state.songLoading) {
                 failLoading(data.message);
-            } else if (data.context === "render") {
-                failRendering(data.message);
             } else {
                 showError(data.message, data.context);
             }
@@ -262,20 +257,34 @@ export function setCustomSounds(files: SetCustomSoundsMessage["files"] = []): vo
     }
 }
 
-export function renderSong(message: RenderMessage): void {
-    const current = worker;
-    if (!current) {
+export function startRender(message: StartRenderMessage): void {
+    if (!worker) {
         return;
     }
     clearRender();
     state.renderWarnings = [];
     state.renderStatus = "Waiting for action";
-    state.rendering = true;
     try {
-        current.postMessage(message);
+        worker.postMessage(message);
+        state.renderStarted = true;
     } catch (error) {
         console.error("Failed to render the song", error);
-        failRendering("Failed to render the song");
+        showError("Failed to render the song", "render");
+    }
+}
+
+export function stopRender(): void {
+    if (!worker || !state.renderStarted) {
+        return;
+    }
+    try {
+        worker.postMessage({type: "stop-render"} satisfies StopRenderMessage);
+        state.renderStarted = false;
+        state.renderProgress = 0;
+        state.renderStatus = "Waiting for action";
+    } catch (error) {
+        console.error("Failed to stop the render", error);
+        showError("Failed to stop the render", "render");
     }
 }
 
@@ -323,6 +332,7 @@ export function updatePlayerState(changes: Partial<Omit<FrontendPlayerStateMessa
 }
 
 export function closeRenderDialog(): void {
+    stopRender();
     state.renderDialogOpen = false;
     state.renderStatus = "Waiting for action";
     state.renderWarnings = [];

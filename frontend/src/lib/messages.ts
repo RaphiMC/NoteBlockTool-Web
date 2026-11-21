@@ -21,8 +21,20 @@ export interface LoadNbwMessage extends Message {
     id: string;
 }
 
-export interface RenderMessage extends Message {
-    type: "render";
+export interface SetCustomSoundsMessage extends Message {
+    type: "set-custom-sounds";
+    files: File[];
+}
+
+export interface StartPlayerMessage extends Message {
+    type: "start-player";
+    playbackOptions: Pick<PlaybackOptions, "timingJitter">;
+    rendererOptions: Pick<RendererOptions, "resampler">;
+    advancedOptions: AdvancedOptions & {audioBufferMillis: number};
+}
+
+export interface StartRenderMessage extends Message {
+    type: "start-render";
     audioFileOptions: WavAudioFileOptions | FlacAudioFileOptions | Mp3AudioFileOptions | OggOpusAudioFileOptions;
     playbackOptions: PlaybackOptions;
     rendererOptions: RendererOptions;
@@ -36,7 +48,7 @@ export interface AudioFileOptions {
     stereo: boolean;
 }
 
-export type AudioFormat = RenderMessage["audioFileOptions"]["format"];
+export type AudioFormat = StartRenderMessage["audioFileOptions"]["format"];
 
 export interface WavAudioFileOptions extends AudioFileOptions {
     format: "wav";
@@ -84,20 +96,12 @@ export interface AdvancedOptions {
     preRenderCacheSize: number;
 }
 
-export interface SetCustomSoundsMessage extends Message {
-    type: "set-custom-sounds";
-    files: File[];
-}
-
-export interface StartPlayerMessage extends Message {
-    type: "start-player";
-    playbackOptions: Pick<PlaybackOptions, "timingJitter">;
-    rendererOptions: Pick<RendererOptions, "resampler">;
-    advancedOptions: AdvancedOptions & {audioBufferMillis: number};
-}
-
 export interface StopPlayerMessage extends Message {
     type: "stop-player";
+}
+
+export interface StopRenderMessage extends Message {
+    type: "stop-render";
 }
 
 export interface UnloadMessage extends Message {
@@ -106,7 +110,7 @@ export interface UnloadMessage extends Message {
 
 export type LoadMessage = LoadFileMessage | LoadNbwMessage;
 
-export type FrontendMessage = FrontendPlayerStateMessage | LoadMessage | RenderMessage | SetCustomSoundsMessage | StartPlayerMessage | StopPlayerMessage | UnloadMessage;
+export type FrontendMessage = FrontendPlayerStateMessage | LoadMessage | SetCustomSoundsMessage | StartPlayerMessage | StartRenderMessage | StopPlayerMessage | StopRenderMessage | UnloadMessage;
 
 // Backend messages
 
