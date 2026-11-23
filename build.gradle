@@ -5,7 +5,7 @@ plugins {
     id "java-library"
     id "base.base-conventions"
     id "base.checkstyle"
-    id "org.teavm" version "0.17.0-dev-7"
+    id "org.teavm" version "0.17.0"
 }
 
 checkstyle {
@@ -44,7 +44,7 @@ repositories {
 }
 
 dependencies {
-    teavmCompileOnly "org.teavm:teavm-core:0.17.0-dev-7"
+    teavmCompileOnly "org.teavm:teavm-core:0.17.0"
     teavmImplementation "org.bouncycastle:bcprov-jdk18on:1.86"
 
     implementation "com.google.guava:guava:33.7.2-jre"
@@ -60,7 +60,7 @@ teavm {
         targetFileName = "backend.js"
         moduleType = JSModuleType.ES2015
         asyncEnabled = true
-        optimization = production.map { it ? OptimizationLevel.AGGRESSIVE : OptimizationLevel.NONE }
+        optimization = production.map { it ? OptimizationLevel.BALANCED : OptimizationLevel.NONE }
         obfuscated = production
     }
 }

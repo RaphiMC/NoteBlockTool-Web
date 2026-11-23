@@ -126,41 +126,6 @@
     select.select::picker(select) {
         appearance: auto;
     }
-
-    .options-dialog {
-        .modal-box {
-            @apply flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-primary/20 p-0 shadow-2xl;
-        }
-
-        .dialog-header {
-            @apply flex shrink-0 items-start justify-between gap-4 border-b border-base-300 p-6;
-        }
-
-        .dialog-form {
-            @apply flex min-h-0 flex-col;
-        }
-
-        .dialog-body {
-            @apply min-h-0 overflow-y-auto overscroll-contain p-6;
-        }
-
-        .dialog-options > .fieldset:not(:last-child) {
-            @apply border-b border-base-300 pb-4;
-        }
-
-        .dialog-footer {
-            @apply shrink-0 border-t border-base-300 bg-base-200 p-6;
-        }
-
-        .render-result {
-            @apply grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4;
-        }
-    }
-}
-
-/* Show frequent worker updates immediately instead of animating each one. */
-#render-progress::-webkit-progress-value {
-    transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

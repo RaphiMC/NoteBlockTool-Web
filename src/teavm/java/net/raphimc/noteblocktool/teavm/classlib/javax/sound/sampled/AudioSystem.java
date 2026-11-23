@@ -21,6 +21,7 @@ import net.raphimc.noteblocktool.message.backend.CreateSourceDataLineMessage;
 import net.raphimc.noteblocktool.util.js.JsNative;
 import net.raphimc.noteblocktool.util.js.MessageChannel;
 import net.raphimc.noteblocktool.util.js.WebAudioSourceDataLine;
+import org.teavm.jso.browser.Window;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -40,7 +41,7 @@ public class AudioSystem {
             throw new LineUnavailableException("SourceDataLine requires SharedArrayBuffer, which is unavailable in this environment");
         }
         final MessageChannel channel = new MessageChannel();
-        JsNative.postMessage(CreateSourceDataLineMessage.create(channel.getPort2()), channel.getPort2());
+        Window.worker().postMessage(CreateSourceDataLineMessage.create(channel.getPort2()), channel.getPort2());
         return new WebAudioSourceDataLine(channel.getPort1(), format);
     }
 

@@ -33,7 +33,7 @@
 
 <main class="mx-auto my-8 max-w-6xl px-4 sm:px-6">
     <ErrorAlert bind:message={appState.mainError} />
-    <WarningList warnings={appState.mainWarnings} />
+    <WarningList bind:warnings={appState.mainWarnings} />
 
     {#if appState.workerState === "failed"}
         <section class="state-panel panel card" aria-labelledby="worker-error-title" role="alert">

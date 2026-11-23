@@ -352,6 +352,7 @@ public class WebAudioSourceDataLine implements SourceDataLine {
         return true;
     }
 
+    @SuppressWarnings("unchecked")
     private <T extends Response> T request(final Request request) {
         request.setId(this.requestId++);
         final Response response = this.executeRequest(request);

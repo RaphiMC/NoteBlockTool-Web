@@ -22,26 +22,33 @@ import net.raphimc.noteblockrenderer.NoteBlockPlayer;
 import net.raphimc.noteblockrenderer.provider.SoundProvider;
 import net.raphimc.noteblocktool.handler.MessageHandler;
 import net.raphimc.noteblocktool.handler.impl.FrontendPlayerStateMessageHandler;
+import net.raphimc.noteblocktool.handler.impl.FrontendVisualizerStateMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.LoadFileMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.LoadNbwMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.SetCustomSoundsMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.StartPlayerMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.StartRenderMessageHandler;
+import net.raphimc.noteblocktool.handler.impl.StartVisualizerMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.StopPlayerMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.StopRenderMessageHandler;
+import net.raphimc.noteblocktool.handler.impl.StopVisualizerMessageHandler;
 import net.raphimc.noteblocktool.handler.impl.UnloadMessageHandler;
 import net.raphimc.noteblocktool.message.Message;
 import net.raphimc.noteblocktool.message.backend.StatusMessage;
 import net.raphimc.noteblocktool.message.backend.WorkerReadyMessage;
 import net.raphimc.noteblocktool.message.frontend.FrontendPlayerStateMessage;
+import net.raphimc.noteblocktool.message.frontend.FrontendVisualizerStateMessage;
 import net.raphimc.noteblocktool.message.frontend.LoadFileMessage;
 import net.raphimc.noteblocktool.message.frontend.LoadNbwMessage;
 import net.raphimc.noteblocktool.message.frontend.SetCustomSoundsMessage;
 import net.raphimc.noteblocktool.message.frontend.StartPlayerMessage;
 import net.raphimc.noteblocktool.message.frontend.StartRenderMessage;
+import net.raphimc.noteblocktool.message.frontend.StartVisualizerMessage;
 import net.raphimc.noteblocktool.message.frontend.StopPlayerMessage;
 import net.raphimc.noteblocktool.message.frontend.StopRenderMessage;
+import net.raphimc.noteblocktool.message.frontend.StopVisualizerMessage;
 import net.raphimc.noteblocktool.message.frontend.UnloadMessage;
+import net.raphimc.noteblocktool.visualizer.VisualizerRenderer;
 import org.teavm.jso.JSExport;
 import org.teavm.jso.dom.events.MessageEvent;
 
@@ -53,16 +60,19 @@ public class NoteBlockTool extends MessageHandler<Message> {
 
     private static NoteBlockTool INSTANCE;
 
-    private final Map<String, MessageHandler<?>> messageHandlers = Map.of(
-        LoadFileMessage.TYPE, new LoadFileMessageHandler(),
-        LoadNbwMessage.TYPE, new LoadNbwMessageHandler(),
-        UnloadMessage.TYPE, new UnloadMessageHandler(),
-        StartRenderMessage.TYPE, new StartRenderMessageHandler(),
-        StopRenderMessage.TYPE, new StopRenderMessageHandler(),
-        StartPlayerMessage.TYPE, new StartPlayerMessageHandler(),
-        StopPlayerMessage.TYPE, new StopPlayerMessageHandler(),
-        FrontendPlayerStateMessage.TYPE, new FrontendPlayerStateMessageHandler(),
-        SetCustomSoundsMessage.TYPE, new SetCustomSoundsMessageHandler()
+    private final Map<String, MessageHandler<?>> messageHandlers = Map.ofEntries(
+        Map.entry(LoadFileMessage.TYPE, new LoadFileMessageHandler()),
+        Map.entry(LoadNbwMessage.TYPE, new LoadNbwMessageHandler()),
+        Map.entry(UnloadMessage.TYPE, new UnloadMessageHandler()),
+        Map.entry(SetCustomSoundsMessage.TYPE, new SetCustomSoundsMessageHandler()),
+        Map.entry(StartRenderMessage.TYPE, new StartRenderMessageHandler()),
+        Map.entry(StopRenderMessage.TYPE, new StopRenderMessageHandler()),
+        Map.entry(StartPlayerMessage.TYPE, new StartPlayerMessageHandler()),
+        Map.entry(FrontendPlayerStateMessage.TYPE, new FrontendPlayerStateMessageHandler()),
+        Map.entry(StopPlayerMessage.TYPE, new StopPlayerMessageHandler()),
+        Map.entry(StartVisualizerMessage.TYPE, new StartVisualizerMessageHandler()),
+        Map.entry(FrontendVisualizerStateMessage.TYPE, new FrontendVisualizerStateMessageHandler()),
+        Map.entry(StopVisualizerMessage.TYPE, new StopVisualizerMessageHandler())
     );
     private final Thread messageProcessingThread = new Thread(this::processMessages, "Message Processor");
     private final BlockingQueue<Message> messageQueue = new ArrayBlockingQueue<>(1024);
@@ -71,6 +81,7 @@ public class NoteBlockTool extends MessageHandler<Message> {
     private Song song;
     private Thread renderTask;
     private NoteBlockPlayer player;
+    private VisualizerRenderer visualizer;
 
     public NoteBlockTool() {
         super(StatusMessage.CONTEXT_MAIN);
@@ -162,6 +173,14 @@ public class NoteBlockTool extends MessageHandler<Message> {
 
     public void setPlayer(final NoteBlockPlayer player) {
         this.player = player;
+    }
+
+    public VisualizerRenderer getVisualizer() {
+        return this.visualizer;
+    }
+
+    public void setVisualizer(final VisualizerRenderer visualizer) {
+        this.visualizer = visualizer;
     }
 
 }

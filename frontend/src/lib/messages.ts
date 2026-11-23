@@ -11,6 +11,12 @@ export interface FrontendPlayerStateMessage extends Message {
     volume: number | null;
 }
 
+export interface FrontendVisualizerStateMessage extends Message {
+    type: "frontend-visualizer-state";
+    width: number;
+    height: number;
+}
+
 export interface LoadFileMessage extends Message {
     type: "load-file";
     file: File;
@@ -96,6 +102,11 @@ export interface AdvancedOptions {
     preRenderCacheSize: number;
 }
 
+export interface StartVisualizerMessage extends Message {
+    type: "start-visualizer";
+    canvas: OffscreenCanvas;
+}
+
 export interface StopPlayerMessage extends Message {
     type: "stop-player";
 }
@@ -104,13 +115,17 @@ export interface StopRenderMessage extends Message {
     type: "stop-render";
 }
 
+export interface StopVisualizerMessage extends Message {
+    type: "stop-visualizer";
+}
+
 export interface UnloadMessage extends Message {
     type: "unload";
 }
 
 export type LoadMessage = LoadFileMessage | LoadNbwMessage;
 
-export type FrontendMessage = FrontendPlayerStateMessage | LoadMessage | SetCustomSoundsMessage | StartPlayerMessage | StartRenderMessage | StopPlayerMessage | StopRenderMessage | UnloadMessage;
+export type FrontendMessage = FrontendPlayerStateMessage | FrontendVisualizerStateMessage | LoadMessage | SetCustomSoundsMessage | StartPlayerMessage | StartRenderMessage | StartVisualizerMessage | StopPlayerMessage | StopRenderMessage | StopVisualizerMessage | UnloadMessage;
 
 // Backend messages
 

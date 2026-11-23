@@ -22,8 +22,8 @@ import net.raphimc.noteblocktool.message.backend.ErrorMessage;
 import net.raphimc.noteblocktool.message.backend.StatusMessage;
 import net.raphimc.noteblocktool.message.backend.WarningMessage;
 import net.raphimc.noteblocktool.util.Logger;
-import net.raphimc.noteblocktool.util.js.JsNative;
 import org.teavm.jso.JSObject;
+import org.teavm.jso.browser.Window;
 
 public abstract class MessageHandler<T extends Message> {
 
@@ -51,7 +51,7 @@ public abstract class MessageHandler<T extends Message> {
     }
 
     protected void postMessage(final JSObject message) {
-        JsNative.postMessage(message);
+        Window.worker().postMessage(message);
     }
 
 }

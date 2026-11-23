@@ -1,5 +1,5 @@
 import BackendWorker from "../workers/backend.worker?worker";
-import type {BackendMessage, BackendPlayerStateMessage, FrontendPlayerStateMessage, LoadMessage, MessageContext, RenderFinishedMessage, SetCustomSoundsMessage, SongLoadedMessage, StartPlayerMessage, StartRenderMessage, StopPlayerMessage, StopRenderMessage} from "./messages";
+import type {BackendMessage, BackendPlayerStateMessage, FrontendPlayerStateMessage, FrontendVisualizerStateMessage, LoadMessage, MessageContext, RenderFinishedMessage, SetCustomSoundsMessage, SongLoadedMessage, StartPlayerMessage, StartRenderMessage, StartVisualizerMessage, StopPlayerMessage, StopRenderMessage, StopVisualizerMessage} from "./messages";
 import {SourceDataLineHost} from "../audio/source-data-line";
 
 interface CustomSoundsDirectory {
@@ -319,6 +319,30 @@ export function stopPlayer(): void {
     }
 }
 
+export function startVisualizer(canvas: OffscreenCanvas): void {
+    if (!worker) {
+        return;
+    }
+    try {
+        worker.postMessage({type: "start-visualizer", canvas} satisfies StartVisualizerMessage, [canvas]);
+    } catch (error) {
+        console.error("Failed to start the visualizer", error);
+        showError("Failed to start the visualizer", "player");
+    }
+}
+
+export function stopVisualizer(): void {
+    if (!worker) {
+        return;
+    }
+    try {
+        worker.postMessage({type: "stop-visualizer"} satisfies StopVisualizerMessage);
+    } catch (error) {
+        console.error("Failed to stop the visualizer", error);
+        showError("Failed to stop the visualizer", "player");
+    }
+}
+
 export function updatePlayerState(changes: Partial<Omit<FrontendPlayerStateMessage, "type">>): void {
     if (!worker || !state.playerStarted) {
         return;
@@ -328,6 +352,18 @@ export function updatePlayerState(changes: Partial<Omit<FrontendPlayerStateMessa
     } catch (error) {
         console.error("Failed to send the player state to the worker", error);
         showError("Failed to send the player state to the worker", "player");
+    }
+}
+
+export function updateVisualizerState(changes: Omit<FrontendVisualizerStateMessage, "type">): void {
+    if (!worker) {
+        return;
+    }
+    try {
+        worker.postMessage({type: "frontend-visualizer-state", ...changes} satisfies FrontendVisualizerStateMessage);
+    } catch (error) {
+        console.error("Failed to send the visualizer state to the worker", error);
+        showError("Failed to send the visualizer state to the worker", "player");
     }
 }
 

@@ -3,7 +3,7 @@ import tsParser from "@typescript-eslint/parser";
 import svelteParser from "svelte-eslint-parser";
 
 export default defineConfig(
-    globalIgnores(["dist/**", "src/generated/backend.js"]),
+    globalIgnores(["dist/**", "src/generated/*.js"]),
     {
         files: ["**/*.{js,ts,svelte}"],
         languageOptions: {

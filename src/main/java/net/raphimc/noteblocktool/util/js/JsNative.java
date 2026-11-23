@@ -29,12 +29,6 @@ public final class JsNative {
     private JsNative() {
     }
 
-    @JSBody(params = "message", script = "postMessage(message);")
-    public static native void postMessage(final JSObject message);
-
-    @JSBody(params = {"message", "transfer"}, script = "postMessage(message, transfer);")
-    public static native void postMessage(final JSObject message, final JSObject... transfer);
-
     @JSBody(params = {"value", "precision"}, script = "return value.toPrecision(precision);")
     public static native String Number_toPrecision(final double value, final int precision);
 
